@@ -1,6 +1,6 @@
 set(MILKDROP_SOURCES
-  glad.c
   main.cpp
+  glad.c
   platform/config.cpp
   platform/types.h
   audio/audio_analyzer.cpp
