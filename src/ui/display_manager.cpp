@@ -72,6 +72,8 @@ bool DisplayManager::update() {
 }
 
 void DisplayManager::render(const std::vector<RenderCommand>& commands) {
+  if (!window_) return;
+
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   // Execute render commands (will be implemented with graphics device)
