@@ -33,6 +33,7 @@ target_link_libraries(milkdrop3 PRIVATE
   preset_parser
   expression_evaluator
   eel2
+  profiler
 )
 
 # Link KissFFT
