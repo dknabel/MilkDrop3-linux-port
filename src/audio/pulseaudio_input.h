@@ -18,7 +18,7 @@ public:
   std::string getDefaultDevice() const override;
 
 private:
-  pa_mainloop* mainLoop_;
+  pa_mainloop_api* mainLoop_;
   pa_context* context_;
   pa_stream* stream_;
   pa_threaded_mainloop* threadedMainLoop_;
@@ -29,5 +29,6 @@ private:
   bool isInitialized_;
 
   static void onContextStateCallback(pa_context* c, void* userdata);
+  static void onStreamStateCallback(pa_stream* p, void* userdata);
   static void onStreamReadCallback(pa_stream* p, size_t nbytes, void* userdata);
 };

@@ -50,10 +50,43 @@ bool PulseAudioInput::initialize(const std::string& deviceName) {
       return false;
     }
 
-    // TODO: Create and connect recording stream
-    // - Specify sample rate (44100 Hz common for visualization)
-    // - Format: PCM 16-bit or 32-bit float
-    // - Channels: mono or stereo
+    // Create sample spec
+    pa_sample_spec spec;
+    spec.format = PA_SAMPLE_FLOAT32LE;
+    spec.rate = 48000;
+    spec.channels = 2;
+
+    // Create stream
+    stream_ = pa_stream_new(context_, "milkdrop3-input", &spec, nullptr);
+    if (!stream_) {
+      std::cerr << "Failed to create PulseAudio stream\n";
+      pa_context_disconnect(context_);
+      pa_context_unref(context_);
+      pa_threaded_mainloop_stop(threadedMainLoop_);
+      pa_threaded_mainloop_free(threadedMainLoop_);
+      threadedMainLoop_ = nullptr;
+      context_ = nullptr;
+      return false;
+    }
+
+    // Set callbacks
+    pa_stream_set_read_callback(stream_, onStreamReadCallback, this);
+    pa_stream_set_state_callback(stream_, onStreamStateCallback, this);
+
+    // Connect recording stream to monitor of default output
+    if (pa_stream_connect_record(stream_, "@DEFAULT_MONITOR@", nullptr, PA_STREAM_ADJUST_LATENCY) < 0) {
+      std::cerr << "Failed to connect recording stream\n";
+      pa_stream_disconnect(stream_);
+      pa_stream_unref(stream_);
+      pa_context_disconnect(context_);
+      pa_context_unref(context_);
+      pa_threaded_mainloop_stop(threadedMainLoop_);
+      pa_threaded_mainloop_free(threadedMainLoop_);
+      stream_ = nullptr;
+      threadedMainLoop_ = nullptr;
+      context_ = nullptr;
+      return false;
+    }
 
     isInitialized_ = true;
     std::cout << "PulseAudio input initialized\n";
@@ -127,7 +160,50 @@ void PulseAudioInput::onContextStateCallback(pa_context* c, void* userdata) {
   }
 }
 
+void PulseAudioInput::onStreamStateCallback(pa_stream* p, void* userdata) {
+  pa_stream_state state = pa_stream_get_state(p);
+
+  switch (state) {
+    case PA_STREAM_READY:
+      std::cout << "PulseAudio stream ready\n";
+      break;
+    case PA_STREAM_FAILED:
+      std::cerr << "PulseAudio stream failed: " << pa_strerror(pa_context_errno(pa_stream_get_context(p))) << "\n";
+      break;
+    case PA_STREAM_TERMINATED:
+      std::cout << "PulseAudio stream terminated\n";
+      break;
+    default:
+      break;
+  }
+}
+
 void PulseAudioInput::onStreamReadCallback(pa_stream* p, size_t nbytes, void* userdata) {
-  // Called when audio data is available
-  // TODO: Read samples and queue them for processing
+  PulseAudioInput* self = static_cast<PulseAudioInput*>(userdata);
+  const void* data;
+  size_t bytes;
+
+  while (pa_stream_peek(p, &data, &bytes) == 0 && bytes > 0) {
+    if (data) {
+      // Extract float samples
+      const float* floatSamples = static_cast<const float*>(data);
+      size_t sampleCount = bytes / sizeof(float);
+
+      // Create audio frame
+      AudioFrame frame;
+      frame.samples.assign(floatSamples, floatSamples + sampleCount);
+      frame.sampleRate = 48000;
+      frame.channels = 2;
+
+      // Queue in buffer with limit
+      {
+        std::lock_guard<std::mutex> lock(self->bufferLock_);
+        if (self->audioBuffer_.size() < 10) {
+          self->audioBuffer_.push_back(frame);
+        }
+      }
+    }
+
+    pa_stream_drop(p);
+  }
 }
