@@ -6,3 +6,6 @@ add_subdirectory(integration)
 
 # Performance tests
 add_subdirectory(performance)
+
+# Stability and crash resilience tests
+add_subdirectory(stability)
