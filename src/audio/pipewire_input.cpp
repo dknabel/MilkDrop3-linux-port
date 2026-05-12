@@ -2,6 +2,14 @@
 #include "pipewire_input.h"
 #include <iostream>
 #include <cstring>
+#include <spa/param/audio/format.h>
+#include <spa/pod/builder.h>
+
+static const pw_stream_events stream_events = {
+  .version = PW_VERSION_STREAM_EVENTS,
+  .process = PipeWireInput::onStreamProcess,
+  .state_changed = PipeWireInput::onStreamStateChange,
+};
 
 PipeWireInput::PipeWireInput()
   : mainLoop_(nullptr), context_(nullptr), core_(nullptr),
@@ -43,11 +51,31 @@ bool PipeWireInput::initialize(const std::string& deviceName) {
       return false;
     }
 
-    // TODO: Create stream with device selection
-    // This is a simplified version; full implementation will handle:
-    // - Device enumeration and selection
-    // - Stream configuration (sample rate, format, channels)
-    // - Callbacks for processing audio data
+    // Create recording stream
+    uint8_t buffer[1024];
+    spa_audio_info_raw audio_info = SPA_AUDIO_INFO_RAW_INIT(
+      .format = SPA_AUDIO_FORMAT_F32LE,
+      .channels = 2,
+      .rate = 48000
+    );
+
+    const spa_pod *params[1];
+    struct spa_pod_builder b = SPA_POD_BUILDER_INIT(buffer, sizeof(buffer));
+    params[0] = spa_format_audio_raw_build(&b, SPA_PARAM_EnumFormat, &audio_info);
+
+    stream_ = pw_stream_new_simple(
+      pw_main_loop_get_loop(mainLoop_),
+      "milkdrop3-visualizer",
+      pw_properties_new(
+        PW_KEY_MEDIA_TYPE, "Audio",
+        PW_KEY_MEDIA_CATEGORY, "Playback",
+        NULL
+      ),
+      &stream_events,
+      this
+    );
+
+    pw_stream_connect(stream_, PW_DIRECTION_INPUT, PW_ID_ANY, PW_STREAM_FLAG_AUTOCONNECT, params, 1);
 
     isInitialized_ = true;
     std::cout << "PipeWire audio input initialized\n";
@@ -106,13 +134,54 @@ std::string PipeWireInput::getDefaultDevice() const {
 }
 
 void PipeWireInput::onStreamProcess(void* userData) {
-  // PipeWire callback for processing audio
-  // TODO: Extract audio frames and queue them
+  PipeWireInput* self = reinterpret_cast<PipeWireInput*>(userData);
+  if (!self || !self->stream_) return;
+
+  pw_buffer* pwBuf = pw_stream_dequeue_buffer(self->stream_);
+  if (!pwBuf) return;
+
+  spa_buffer* buffer = pwBuf->buffer;
+  if (buffer->datas[0].data) {
+    float* samples = (float*)buffer->datas[0].data;
+    uint32_t n_samples = buffer->datas[0].chunk->size / sizeof(float);
+
+    // Queue audio frame
+    AudioFrame frame;
+    frame.samples.resize(n_samples);
+    std::copy(samples, samples + n_samples, frame.samples.begin());
+    frame.sampleRate = 48000;
+    frame.channels = 2;
+
+    {
+      std::lock_guard<std::mutex> lock(self->bufferLock_);
+      self->audioBuffer_.push_back(frame);
+      // Keep buffer size reasonable
+      if (self->audioBuffer_.size() > 10) {
+        self->audioBuffer_.pop_front();
+      }
+    }
+  }
+
+  pw_stream_queue_buffer(self->stream_, pwBuf);
 }
 
 void PipeWireInput::onStreamStateChange(void* userData, pw_stream_state old,
                                        pw_stream_state state, const char* error) {
   if (error) {
-    std::cerr << "PipeWire stream state change error: " << error << "\n";
+    std::cerr << "PipeWire stream error: " << error << "\n";
+  }
+
+  switch (state) {
+    case PW_STREAM_STATE_STREAMING:
+      std::cout << "PipeWire stream streaming\n";
+      break;
+    case PW_STREAM_STATE_PAUSED:
+      std::cout << "PipeWire stream paused\n";
+      break;
+    case PW_STREAM_STATE_ERROR:
+      std::cerr << "PipeWire stream error state\n";
+      break;
+    default:
+      break;
   }
 }
