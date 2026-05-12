@@ -50,6 +50,25 @@ bool PulseAudioInput::initialize(const std::string& deviceName) {
       return false;
     }
 
+    // Wait for context to be ready
+    pa_threaded_mainloop_lock(threadedMainLoop_);
+    while (pa_context_get_state(context_) != PA_CONTEXT_READY) {
+      pa_context_state state = pa_context_get_state(context_);
+      if (state == PA_CONTEXT_FAILED || state == PA_CONTEXT_TERMINATED) {
+        std::cerr << "PulseAudio context failed to initialize\n";
+        pa_threaded_mainloop_unlock(threadedMainLoop_);
+        pa_context_disconnect(context_);
+        pa_context_unref(context_);
+        pa_threaded_mainloop_stop(threadedMainLoop_);
+        pa_threaded_mainloop_free(threadedMainLoop_);
+        threadedMainLoop_ = nullptr;
+        context_ = nullptr;
+        return false;
+      }
+      pa_threaded_mainloop_wait(threadedMainLoop_);
+    }
+    pa_threaded_mainloop_unlock(threadedMainLoop_);
+
     // Create sample spec
     pa_sample_spec spec;
     spec.format = PA_SAMPLE_FLOAT32LE;
@@ -73,8 +92,18 @@ bool PulseAudioInput::initialize(const std::string& deviceName) {
     pa_stream_set_read_callback(stream_, onStreamReadCallback, this);
     pa_stream_set_state_callback(stream_, onStreamStateCallback, this);
 
-    // Connect recording stream to monitor of default output
-    if (pa_stream_connect_record(stream_, "@DEFAULT_MONITOR@", nullptr, PA_STREAM_ADJUST_LATENCY) < 0) {
+    // Try to connect recording stream
+    // First try monitor of default output, then fall back to default input
+    const char* recordSource = "@DEFAULT_MONITOR@";
+    int connectResult = pa_stream_connect_record(stream_, recordSource, nullptr, PA_STREAM_ADJUST_LATENCY);
+
+    if (connectResult < 0) {
+      std::cout << "Monitor output not available, trying default input device...\n";
+      recordSource = nullptr;  // Use default input device
+      connectResult = pa_stream_connect_record(stream_, recordSource, nullptr, PA_STREAM_ADJUST_LATENCY);
+    }
+
+    if (connectResult < 0) {
       std::cerr << "Failed to connect recording stream\n";
       pa_stream_disconnect(stream_);
       pa_stream_unref(stream_);
@@ -168,17 +197,23 @@ bool PulseAudioInput::attemptReconnect() {
 }
 
 void PulseAudioInput::onContextStateCallback(pa_context* c, void* userdata) {
+  PulseAudioInput* self = reinterpret_cast<PulseAudioInput*>(userdata);
+  if (!self || !self->threadedMainLoop_) return;
+
   pa_context_state state = pa_context_get_state(c);
 
   switch (state) {
     case PA_CONTEXT_READY:
       std::cout << "PulseAudio context ready\n";
+      pa_threaded_mainloop_signal(self->threadedMainLoop_, 0);
       break;
     case PA_CONTEXT_FAILED:
       std::cerr << "PulseAudio context failed\n";
+      pa_threaded_mainloop_signal(self->threadedMainLoop_, 0);
       break;
     case PA_CONTEXT_TERMINATED:
       std::cout << "PulseAudio context terminated\n";
+      pa_threaded_mainloop_signal(self->threadedMainLoop_, 0);
       break;
     default:
       break;

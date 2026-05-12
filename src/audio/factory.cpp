@@ -14,25 +14,25 @@
 AudioInput* createAudioInput() {
 #ifdef HAVE_PIPEWIRE
   std::cout << "Creating PipeWire audio input...\n";
-  auto* input = new PipeWireInput();
-  if (input->initialize("default")) {
+  AudioInput* pwInput = new PipeWireInput();
+  if (pwInput->initialize("default")) {
     std::cout << "PipeWire initialized successfully\n";
-    return input;
+    return pwInput;
   } else {
     std::cout << "PipeWire initialization failed, trying PulseAudio...\n";
-    delete input;
+    delete pwInput;
   }
 #endif
 
 #ifdef HAVE_PULSEAUDIO
   std::cout << "Creating PulseAudio audio input...\n";
-  auto* input = new PulseAudioInput();
-  if (input->initialize("default")) {
+  AudioInput* paInput = new PulseAudioInput();
+  if (paInput->initialize("default")) {
     std::cout << "PulseAudio initialized successfully\n";
-    return input;
+    return paInput;
   } else {
     std::cerr << "PulseAudio initialization failed\n";
-    delete input;
+    delete paInput;
   }
 #endif
 

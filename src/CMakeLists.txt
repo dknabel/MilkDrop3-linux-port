@@ -14,14 +14,15 @@ set(MILKDROP_SOURCES
   ui/preset_manager.cpp
 )
 
-# Platform-specific sources (disabled for now - will be fixed in later tasks)
-# if(PIPEWIRE_FOUND)
-#   list(APPEND MILKDROP_SOURCES audio/pipewire_input.cpp)
-# endif()
+# Platform-specific sources
+# Disable PipeWire for now due to API compatibility issues
+#if(PIPEWIRE_FOUND)
+#  list(APPEND MILKDROP_SOURCES audio/pipewire_input.cpp)
+#endif()
 
-# if(PULSEAUDIO_FOUND)
-#   list(APPEND MILKDROP_SOURCES audio/pulseaudio_input.cpp)
-# endif()
+if(PULSEAUDIO_FOUND)
+  list(APPEND MILKDROP_SOURCES audio/pulseaudio_input.cpp)
+endif()
 
 list(APPEND MILKDROP_SOURCES
   window/factory.cpp
@@ -58,19 +59,16 @@ target_include_directories(milkdrop3 PRIVATE
   ${CMAKE_SOURCE_DIR}/include
 )
 
-# target_link_libraries(milkdrop3
-#   # glfw (will be added back when window dependencies are resolved)
-# )
+# Audio backend linking
+# Disable PipeWire for now due to API compatibility issues
+#if(PIPEWIRE_FOUND)
+#  target_link_libraries(milkdrop3 PRIVATE ${PIPEWIRE_LIBRARIES})
+#  target_include_directories(milkdrop3 PRIVATE ${PIPEWIRE_INCLUDE_DIRS})
+#  target_compile_definitions(milkdrop3 PRIVATE HAVE_PIPEWIRE)
+#endif()
 
-# Audio backend linking (disabled for now - will be fixed in later tasks)
-# if(PIPEWIRE_FOUND)
-#   target_link_libraries(milkdrop3 ${PIPEWIRE_LIBRARIES})
-#   target_include_directories(milkdrop3 PRIVATE ${PIPEWIRE_INCLUDE_DIRS})
-#   target_compile_definitions(milkdrop3 PRIVATE HAVE_PIPEWIRE)
-# endif()
-
-# if(PULSEAUDIO_FOUND)
-#   target_link_libraries(milkdrop3 ${PULSEAUDIO_LIBRARIES})
-#   target_include_directories(milkdrop3 PRIVATE ${PULSEAUDIO_INCLUDE_DIRS})
-#   target_compile_definitions(milkdrop3 PRIVATE HAVE_PULSEAUDIO)
-# endif()
+if(PULSEAUDIO_FOUND)
+  target_link_libraries(milkdrop3 PRIVATE ${PULSEAUDIO_LIBRARIES})
+  target_include_directories(milkdrop3 PRIVATE ${PULSEAUDIO_INCLUDE_DIRS})
+  target_compile_definitions(milkdrop3 PRIVATE HAVE_PULSEAUDIO)
+endif()

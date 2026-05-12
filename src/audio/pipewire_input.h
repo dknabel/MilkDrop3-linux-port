@@ -22,6 +22,10 @@ public:
   bool attemptReconnect() override;
   int getReconnectAttempts() const override { return reconnectAttempts_; }
 
+  // Static callbacks (public for stream_events initialization)
+  static void onStreamProcess(void* userData);
+  static void onStreamStateChange(void* userData, pw_stream_state old, pw_stream_state state, const char* error);
+
 private:
   pw_main_loop* mainLoop_;
   pw_context* context_;
@@ -35,7 +39,4 @@ private:
   int reconnectAttempts_ = 0;
   static constexpr int MAX_RECONNECT_ATTEMPTS = 5;
   bool isConnected_ = false;
-
-  static void onStreamProcess(void* userData);
-  static void onStreamStateChange(void* userData, pw_stream_state old, pw_stream_state state, const char* error);
 };
