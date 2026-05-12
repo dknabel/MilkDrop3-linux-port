@@ -1,5 +1,5 @@
-# Build EEL2 expression library first
-add_subdirectory(core/expression)
+# Build core libraries first (expression, preset, etc)
+add_subdirectory(core)
 
 set(MILKDROP_SOURCES
   main.cpp

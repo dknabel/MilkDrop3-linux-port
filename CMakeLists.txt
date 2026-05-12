@@ -89,3 +89,18 @@ message(STATUS "Source directory: ${CMAKE_SOURCE_DIR}")
 
 # Build the application
 add_subdirectory(src)
+
+# Enable testing
+enable_testing()
+
+# Find Google Test
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+)
+
+FetchContent_MakeAvailable(googletest)
+
+# Add test subdirectory
+add_subdirectory(tests)
