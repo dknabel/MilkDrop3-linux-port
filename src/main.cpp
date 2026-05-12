@@ -1,6 +1,7 @@
 // src/main.cpp
 #include <iostream>
 #include <memory>
+#include <GLFW/glfw3.h>
 
 #include "platform/audio.h"
 #include "platform/window.h"
@@ -8,6 +9,8 @@
 #include "platform/config.h"
 #include "audio/audio_analyzer.h"
 #include "ui/preset_manager.h"
+#include "ui/display_manager.h"
+#include "core/visualization.h"
 
 class Milkdrop3Application {
 public:
@@ -71,6 +74,21 @@ public:
 
     audioAnalyzer_ = std::make_unique<AudioAnalyzer>(512);
 
+    // Initialize display manager
+    display_ = std::make_unique<DisplayManager>();
+    if (!display_->initialize(1280, 720, "Milkdrop3 - Linux")) {
+      std::cerr << "Failed to initialize display manager\n";
+      return false;
+    }
+
+    // Initialize visualization engine
+    visualizer_ = std::make_unique<VisualizationEngine>();
+    if (!currentPreset_.empty()) {
+      if (!visualizer_->loadPreset(currentPreset_, "")) {
+        std::cerr << "Warning: failed to load initial preset in visualization engine\n";
+      }
+    }
+
     isRunning_ = true;
     return true;
   }
@@ -79,29 +97,89 @@ public:
     std::cout << "Shutting down Milkdrop3...\n";
     isRunning_ = false;
 
+    // Shutdown visualization and display
+    visualizer_.reset();
+    if (display_) {
+      display_->shutdown();
+      display_.reset();
+    }
+
     graphics_.reset();
     window_.reset();
     audio_.reset();
 
     auto& configMgr = ConfigManager::getInstance();
     configMgr.save();
+
+    glfwTerminate();
   }
 
-  void run() {
+  bool run() {
     if (!initialize()) {
-      std::cerr << "Failed to initialize application\n";
-      return;
+      std::cerr << "Application initialization failed\n";
+      return false;
     }
 
     std::cout << "Starting main loop...\n";
 
-    while (isRunning_ && !window_->shouldClose()) {
-      update();
-      render();
+    float deltaTime = 0.0f;
+    double lastTime = display_->getElapsedTime();
+
+    while (display_->isRunning()) {
+      double currentTime = display_->getElapsedTime();
+      deltaTime = static_cast<float>(currentTime - lastTime);
+      lastTime = currentTime;
+
+      // Handle keyboard input
+      if (display_->isKeyPressed(GLFW_KEY_P)) {
+        // Play/pause functionality (implement toggle)
+        std::cout << "Play/pause toggled\n";
+      }
+      if (display_->isKeyPressed(GLFW_KEY_N)) {
+        // Next preset
+        if (presetMgr_->getPresets().size() > 0) {
+          presetMgr_->nextPreset();
+          currentPreset_ = presetMgr_->loadPresetByIndex(presetMgr_->getCurrentPresetIndex());
+          visualizer_->loadPreset(currentPreset_, "");
+          std::cout << "Loaded next preset\n";
+        }
+      }
+      if (display_->isKeyPressed(GLFW_KEY_B)) {
+        // Previous preset
+        if (presetMgr_->getPresets().size() > 0) {
+          presetMgr_->previousPreset();
+          currentPreset_ = presetMgr_->loadPresetByIndex(presetMgr_->getCurrentPresetIndex());
+          visualizer_->loadPreset(currentPreset_, "");
+          std::cout << "Loaded previous preset\n";
+        }
+      }
+      if (display_->isKeyPressed(GLFW_KEY_Q)) {
+        // Quit
+        break;
+      }
+
+      // Update visualization with audio
+      AudioFrame audioFrame;
+      if (audio_->getAudioFrame(audioFrame)) {
+        if (!audioFrame.samples.empty()) {
+          auto freqBins = audioAnalyzer_->analyze(audioFrame.samples);
+          visualizer_->update(freqBins, deltaTime);
+        }
+      }
+
+      // Render
+      auto commands = visualizer_->getRenderCommands();
+      display_->render(commands);
+
+      // Update display (process events)
+      if (!display_->update()) {
+        break;
+      }
     }
 
     shutdown();
     std::cout << "Application terminated normally\n";
+    return true;
   }
 
 private:
@@ -110,57 +188,12 @@ private:
   std::unique_ptr<AudioInput> audio_;
   std::unique_ptr<PresetManager> presetMgr_;
   std::unique_ptr<AudioAnalyzer> audioAnalyzer_;
+  std::unique_ptr<DisplayManager> display_;
+  std::unique_ptr<VisualizationEngine> visualizer_;
 
   std::string currentPreset_;
   bool isRunning_ = false;
 
-  void update() {
-    window_->update();
-
-    // Handle input
-    InputState input;
-    window_->getInputState(input);
-
-    if (input.key_escape || input.key_q) {
-      isRunning_ = false;
-    }
-
-    if (input.key_left) {
-      presetMgr_->previousPreset();
-      currentPreset_ = presetMgr_->loadPresetByIndex(presetMgr_->getCurrentPresetIndex());
-    }
-
-    if (input.key_right) {
-      presetMgr_->nextPreset();
-      currentPreset_ = presetMgr_->loadPresetByIndex(presetMgr_->getCurrentPresetIndex());
-    }
-
-    if (input.key_f) {
-      // TODO: Toggle fullscreen
-    }
-
-    if (input.key_p) {
-      // TODO: Pause/play
-    }
-
-    // Get audio frame
-    AudioFrame audioFrame;
-    if (audio_->getAudioFrame(audioFrame)) {
-      auto freqBins = audioAnalyzer_->analyze(audioFrame.samples);
-      // TODO: Pass frequency bins to visualization engine
-    }
-  }
-
-  void render() {
-    // Clear screen
-    graphics_->clear(0.0f, 0.0f, 0.0f, 1.0f);
-
-    // TODO: Execute visualization engine render commands
-    // graphics_->executeRenderCommand(...);
-
-    // Present
-    graphics_->present();
-  }
 };
 
 int main() {
