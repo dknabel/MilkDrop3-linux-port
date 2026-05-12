@@ -34,7 +34,7 @@ std::string PresetParser::extractSection(const std::string& sectionName,
   // Filter comments and empty lines
   std::istringstream iss(section);
   std::string line;
-  std::string filtered;
+  std::ostringstream oss;
 
   while (std::getline(iss, line)) {
     if (line.empty())
@@ -49,10 +49,10 @@ std::string PresetParser::extractSection(const std::string& sectionName,
     if (line[firstNonSpace] == ';')
       continue;
 
-    filtered += line + "\n";
+    oss << line << "\n";
   }
 
-  return filtered;
+  return oss.str();
 }
 
 std::optional<Preset> PresetParser::parsePreset(const std::string& content,
@@ -61,14 +61,14 @@ std::optional<Preset> PresetParser::parsePreset(const std::string& content,
   preset.filename = filename;
 
   // Initialize shapes vector (16 max in MD3)
-  preset.shapes.resize(16);
-  for (int i = 0; i < 16; ++i) {
+  preset.shapes.resize(MAX_SHAPES);
+  for (int i = 0; i < MAX_SHAPES; ++i) {
     preset.shapes[i].enabled = 0;
   }
 
   // Initialize waves vector (4 max in MD3)
-  preset.waves.resize(4);
-  for (int i = 0; i < 4; ++i) {
+  preset.waves.resize(MAX_WAVES);
+  for (int i = 0; i < MAX_WAVES; ++i) {
     preset.waves[i].enabled = 0;
   }
 
@@ -96,12 +96,12 @@ std::optional<Preset> PresetParser::parsePreset(const std::string& content,
   parseWarpShaderCode(content, preset);
 
   // Parse shapes [shape_0_per_frame], [shape_0_init], etc.
-  for (int i = 0; i < 16; ++i) {
+  for (int i = 0; i < MAX_SHAPES; ++i) {
     parseShape(i, content, preset);
   }
 
   // Parse waves [wave_0_per_point], [wave_0_init], etc.
-  for (int i = 0; i < 4; ++i) {
+  for (int i = 0; i < MAX_WAVES; ++i) {
     parseWave(i, content, preset);
   }
 
@@ -179,13 +179,6 @@ void PresetParser::parseWave(int waveIndex, const std::string& content,
   preset.waves[waveIndex].a = 1.0f;
   preset.waves[waveIndex].mode = 0;  // Lines
   preset.waves[waveIndex].points = 64;
-}
-
-std::optional<std::string> PresetParser::getValueForKey(
-    const std::string& section, const std::string& key,
-    const std::string& content) {
-  // TODO: Implement INI key-value parsing if needed
-  return std::nullopt;
 }
 
 }  // namespace milkdrop

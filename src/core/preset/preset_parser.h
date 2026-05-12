@@ -17,9 +17,12 @@ public:
                                      const std::string& filename);
 
   // Get last error message
-  std::string getLastError() const { return lastError_; }
+  const std::string& getLastError() const { return lastError_; }
 
 private:
+  static constexpr int MAX_SHAPES = 16;
+  static constexpr int MAX_WAVES = 4;
+
   std::string lastError_;
 
   // Helper to extract and filter section content
@@ -33,11 +36,6 @@ private:
   void parseWarpShaderCode(const std::string& content, Preset& preset);
   void parseShape(int shapeIndex, const std::string& content, Preset& preset);
   void parseWave(int waveIndex, const std::string& content, Preset& preset);
-
-  // INI parsing utility
-  std::optional<std::string> getValueForKey(const std::string& section,
-                                             const std::string& key,
-                                             const std::string& content);
 };
 
 }  // namespace milkdrop
