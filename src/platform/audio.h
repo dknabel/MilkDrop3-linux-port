@@ -12,8 +12,8 @@ public:
   virtual void shutdown() = 0;
 
   virtual bool getAudioFrame(AudioFrame& outFrame) = 0;
-  virtual std::vector<std::string> listDevices() = 0;
-  virtual std::string getDefaultDevice() = 0;
+  virtual std::vector<std::string> listDevices() const = 0;
+  virtual std::string getDefaultDevice() const = 0;
 };
 
 // Factory function
