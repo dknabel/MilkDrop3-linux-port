@@ -1,5 +1,8 @@
 #pragma once
 #include "../platform/types.h"
+#include "preset/preset_types.h"
+#include "preset/preset_parser.h"
+#include "expression/expression_evaluator.h"
 #include <string>
 #include <vector>
 #include <memory>
@@ -10,19 +13,30 @@ public:
   ~VisualizationEngine();
 
   // Load and execute a preset
-  bool loadPreset(const std::string& presetContent);
+  bool loadPreset(const std::string& presetContent, const std::string& filename);
 
   // Update with audio data and elapsed time
   void update(const std::vector<float>& frequencyBins, float deltaTime);
 
   // Get pending render commands
-  std::vector<RenderCommand> getRenderCommands();
+  std::vector<milkdrop::RenderCommand> getRenderCommands();
 
   // Reset animation state
   void reset();
 
+  // Get current preset (for debugging/introspection)
+  const milkdrop::Preset* getCurrentPreset() const { return currentPreset_.get(); }
+
 private:
-  // Milkdrop3 core components will go here (Task 3+)
-  // For now: just structure for future integration
-  std::vector<RenderCommand> pendingCommands_;
+  std::unique_ptr<milkdrop::Preset> currentPreset_;
+  milkdrop::PresetParser parser_;
+  milkdrop::ExpressionEvaluator evaluator_;
+
+  std::vector<milkdrop::RenderCommand> pendingCommands_;
+  float elapsedTime_;
+
+  // Helper methods
+  void compilePresetExpressions(milkdrop::Preset& preset);
+  void generateRenderCommands(const std::vector<float>& frequencyBins, float deltaTime);
+  void evaluatePerFrameEquations(const std::vector<float>& frequencyBins);
 };
