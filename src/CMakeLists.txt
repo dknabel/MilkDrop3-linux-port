@@ -31,6 +31,10 @@ list(APPEND MILKDROP_SOURCES
 
 add_executable(milkdrop3 ${MILKDROP_SOURCES})
 
+# Link KissFFT
+target_link_libraries(milkdrop3 kissfft::kissfft)
+target_include_directories(milkdrop3 PRIVATE ${kissfft_SOURCE_DIR})
+
 target_include_directories(milkdrop3 PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/include
