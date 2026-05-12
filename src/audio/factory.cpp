@@ -13,31 +13,29 @@
 
 AudioInput* createAudioInput() {
 #ifdef HAVE_PIPEWIRE
-  try {
-    auto* input = new PipeWireInput();
-    std::cout << "Created PipeWire audio input\n";
+  std::cout << "Creating PipeWire audio input...\n";
+  auto* input = new PipeWireInput();
+  if (input->initialize("default")) {
+    std::cout << "PipeWire initialized successfully\n";
     return input;
-  } catch (const std::exception& e) {
-    std::cerr << "Failed to create PipeWire audio input: " << e.what() << "\n";
-#ifdef HAVE_PULSEAUDIO
-    std::cout << "Falling back to PulseAudio\n";
-#else
-    return nullptr;
-#endif
+  } else {
+    std::cout << "PipeWire initialization failed, trying PulseAudio...\n";
+    delete input;
   }
 #endif
 
 #ifdef HAVE_PULSEAUDIO
-  try {
-    auto* input = new PulseAudioInput();
-    std::cout << "Created PulseAudio audio input\n";
+  std::cout << "Creating PulseAudio audio input...\n";
+  auto* input = new PulseAudioInput();
+  if (input->initialize("default")) {
+    std::cout << "PulseAudio initialized successfully\n";
     return input;
-  } catch (const std::exception& e) {
-    std::cerr << "Failed to create PulseAudio audio input: " << e.what() << "\n";
-    return nullptr;
+  } else {
+    std::cerr << "PulseAudio initialization failed\n";
+    delete input;
   }
 #endif
 
-  std::cerr << "No audio backend available (HAVE_PIPEWIRE or HAVE_PULSEAUDIO not defined)\n";
+  std::cout << "No audio backend available\n";
   return nullptr;
 }
