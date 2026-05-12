@@ -11,3 +11,17 @@ target_include_directories(test_preset_parser PRIVATE
 )
 
 add_test(NAME PresetParserTests COMMAND test_preset_parser)
+
+# Preset validator tests
+add_executable(test_preset_validator test_preset_validator.cpp)
+
+target_link_libraries(test_preset_validator
+  gtest_main
+  preset_validator
+)
+
+target_include_directories(test_preset_validator PRIVATE
+  ${CMAKE_SOURCE_DIR}/src
+)
+
+add_test(NAME PresetValidator COMMAND test_preset_validator)

@@ -16,3 +16,16 @@ target_include_directories(preset_parser PUBLIC
 target_link_libraries(preset_parser PUBLIC
   preset_types
 )
+
+# Preset validator library
+add_library(preset_validator STATIC
+  preset_validator.cpp
+)
+
+target_include_directories(preset_validator PUBLIC
+  ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(preset_validator PUBLIC
+  preset_types
+)
