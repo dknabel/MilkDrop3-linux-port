@@ -86,3 +86,6 @@ message(STATUS "Status: SUCCESS")
 message(STATUS "KissFFT integration verified and ready")
 message(STATUS "Build directory: ${CMAKE_BINARY_DIR}")
 message(STATUS "Source directory: ${CMAKE_SOURCE_DIR}")
+
+# Build the application
+add_subdirectory(src)
