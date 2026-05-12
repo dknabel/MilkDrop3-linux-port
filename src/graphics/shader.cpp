@@ -5,6 +5,10 @@
 #include <iostream>
 #include <sstream>
 
+namespace milkdrop {
+constexpr size_t SHADER_ERROR_LOG_SIZE = 512;
+} // namespace milkdrop
+
 OpenGLShader::OpenGLShader(const std::string& vertexSrc, const std::string& fragmentSrc)
   : programHandle_(0), isValid_(false) {
   compile(vertexSrc, fragmentSrc);
@@ -27,8 +31,8 @@ uint32_t OpenGLShader::compileShaderStage(const std::string& source, uint32_t st
   glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
 
   if (!success) {
-    char infoLog[512];
-    glGetShaderInfoLog(shader, 512, nullptr, infoLog);
+    char infoLog[milkdrop::SHADER_ERROR_LOG_SIZE];
+    glGetShaderInfoLog(shader, milkdrop::SHADER_ERROR_LOG_SIZE, nullptr, infoLog);
     errorLog_ = std::string(infoLog);
     std::cerr << "Shader compilation error:\n" << infoLog << "\n";
     glDeleteShader(shader);
@@ -60,8 +64,8 @@ bool OpenGLShader::compile(const std::string& vertexSrc, const std::string& frag
   glDeleteShader(fragment);
 
   if (!success) {
-    char infoLog[512];
-    glGetProgramInfoLog(programHandle_, 512, nullptr, infoLog);
+    char infoLog[milkdrop::SHADER_ERROR_LOG_SIZE];
+    glGetProgramInfoLog(programHandle_, milkdrop::SHADER_ERROR_LOG_SIZE, nullptr, infoLog);
     errorLog_ = std::string(infoLog);
     std::cerr << "Shader linking error:\n" << infoLog << "\n";
     return false;
@@ -86,6 +90,13 @@ void OpenGLShader::setUniform(const std::string& name, const glm::vec3& value) c
   int loc = glGetUniformLocation(programHandle_, name.c_str());
   if (loc != -1) {
     glUniform3fv(loc, 1, glm::value_ptr(value));
+  }
+}
+
+void OpenGLShader::setUniform(const std::string& name, const glm::vec4& value) const {
+  int loc = glGetUniformLocation(programHandle_, name.c_str());
+  if (loc != -1) {
+    glUniform4fv(loc, 1, glm::value_ptr(value));
   }
 }
 

@@ -2,6 +2,8 @@
 #include "opengl_device.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
 // OpenGLTexture implementation
@@ -29,7 +31,7 @@ OpenGLTexture::~OpenGLTexture() {
 
 // OpenGLDevice implementation
 OpenGLDevice::OpenGLDevice()
-  : window_(nullptr), isInitialized_(false) {
+  : window_(nullptr), isInitialized_(false), defaultShader_(nullptr) {
 }
 
 OpenGLDevice::~OpenGLDevice() {
@@ -70,6 +72,26 @@ bool OpenGLDevice::initialize(Window* window) {
 }
 
 void OpenGLDevice::shutdown() {
+  if (waveformVAO_) {
+    glDeleteVertexArrays(1, &waveformVAO_);
+    waveformVAO_ = 0;
+  }
+  if (waveformVBO_) {
+    glDeleteBuffers(1, &waveformVBO_);
+    waveformVBO_ = 0;
+  }
+  if (shapeVAO_) {
+    glDeleteVertexArrays(1, &shapeVAO_);
+    shapeVAO_ = 0;
+  }
+  if (shapeVBO_) {
+    glDeleteBuffers(1, &shapeVBO_);
+    shapeVBO_ = 0;
+  }
+  if (defaultShader_) {
+    deleteShader(defaultShader_);
+    defaultShader_ = nullptr;
+  }
   isInitialized_ = false;
 }
 
@@ -111,8 +133,148 @@ void OpenGLDevice::clear(float r, float g, float b, float a) {
 }
 
 void OpenGLDevice::executeRenderCommand(const RenderCommand& cmd) {
-  // TODO: Implement render command execution
-  // This will draw geometry with the specified shader
+  if (!isInitialized_) return;
+
+  switch (cmd.type) {
+    case RenderCommandType::Clear:
+      executeClearCommand(cmd);
+      break;
+    case RenderCommandType::DrawWaveform:
+      executeDrawWaveformCommand(cmd);
+      break;
+    case RenderCommandType::DrawShape:
+      executeDrawShapeCommand(cmd);
+      break;
+    default:
+      break;
+  }
+}
+
+void OpenGLDevice::executeClearCommand(const RenderCommand& cmd) {
+  glClearColor(cmd.clearColor[0], cmd.clearColor[1],
+               cmd.clearColor[2], cmd.clearColor[3]);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void OpenGLDevice::executeDrawWaveformCommand(const RenderCommand& cmd) {
+  if (cmd.frequencyBins.empty()) return;
+
+  // Create default shader if not already created
+  if (!defaultShader_) {
+    std::string vertexShader(DefaultShaderSource::vertexShader);
+    std::string fragmentShader(DefaultShaderSource::fragmentShader);
+    defaultShader_ = createShader(vertexShader, fragmentShader);
+    if (!defaultShader_) {
+      std::cerr << "Failed to create default shader for waveform rendering\n";
+      return;
+    }
+  }
+
+  OpenGLShader* shader = dynamic_cast<OpenGLShader*>(defaultShader_);
+  if (!shader) return;
+
+  shader->use();
+
+  // Set uniforms
+  glm::mat4 projection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
+  glm::mat4 view = glm::mat4(1.0f);
+  glm::mat4 model = glm::mat4(1.0f);
+
+  shader->setUniform("projection", projection);
+  shader->setUniform("view", view);
+  shader->setUniform("model", model);
+  shader->setUniform("color", glm::vec4(cmd.waveColor[0], cmd.waveColor[1],
+                                        cmd.waveColor[2], cmd.waveColor[3]));
+
+  // Build vertex data from frequency bins
+  std::vector<glm::vec2> vertices;
+  for (size_t i = 0; i < cmd.frequencyBins.size(); ++i) {
+    float x = static_cast<float>(i) / cmd.frequencyBins.size();
+    float y = cmd.frequencyBins[i];
+    vertices.push_back({x, y});
+  }
+
+  // Create or update VAO/VBO
+  if (waveformVAO_ == 0) {
+    glGenVertexArrays(1, &waveformVAO_);
+    glGenBuffers(1, &waveformVBO_);
+  }
+
+  glBindVertexArray(waveformVAO_);
+  glBindBuffer(GL_ARRAY_BUFFER, waveformVBO_);
+  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec2), vertices.data(), GL_DYNAMIC_DRAW);
+
+  // Set vertex attributes
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*)0);
+
+  // Draw
+  glDrawArrays(GL_LINE_STRIP, 0, static_cast<GLsizei>(vertices.size()));
+
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
+  waveformVertexCount_ = vertices.size();
+}
+
+void OpenGLDevice::executeDrawShapeCommand(const RenderCommand& cmd) {
+  // Create default shader if not already created
+  if (!defaultShader_) {
+    std::string vertexShader(DefaultShaderSource::vertexShader);
+    std::string fragmentShader(DefaultShaderSource::fragmentShader);
+    defaultShader_ = createShader(vertexShader, fragmentShader);
+    if (!defaultShader_) {
+      std::cerr << "Failed to create default shader for shape rendering\n";
+      return;
+    }
+  }
+
+  OpenGLShader* shader = dynamic_cast<OpenGLShader*>(defaultShader_);
+  if (!shader) return;
+
+  shader->use();
+
+  // Set uniforms
+  glm::mat4 projection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
+  glm::mat4 view = glm::mat4(1.0f);
+
+  // Build model matrix from position and radius
+  glm::mat4 model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(cmd.shapePosition[0], cmd.shapePosition[1], 0.0f));
+  model = glm::scale(model, glm::vec3(cmd.shapeRadius, cmd.shapeRadius, 1.0f));
+
+  shader->setUniform("projection", projection);
+  shader->setUniform("view", view);
+  shader->setUniform("model", model);
+  shader->setUniform("color", glm::vec4(cmd.shapeColor[0], cmd.shapeColor[1],
+                                        cmd.shapeColor[2], cmd.shapeColor[3]));
+
+  // Create a simple quad
+  static const glm::vec2 quadVertices[] = {
+    {-0.5f, -0.5f},
+    {0.5f, -0.5f},
+    {0.5f, 0.5f},
+    {-0.5f, 0.5f}
+  };
+
+  if (shapeVAO_ == 0) {
+    glGenVertexArrays(1, &shapeVAO_);
+    glGenBuffers(1, &shapeVBO_);
+
+    glBindVertexArray(shapeVAO_);
+    glBindBuffer(GL_ARRAY_BUFFER, shapeVBO_);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*)0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+  }
+
+  glBindVertexArray(shapeVAO_);
+  glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
 }
 
 void OpenGLDevice::present() {
