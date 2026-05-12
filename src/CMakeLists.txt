@@ -1,3 +1,6 @@
+# Build EEL2 expression library first
+add_subdirectory(core/expression)
+
 set(MILKDROP_SOURCES
   main.cpp
   platform/config.cpp
@@ -25,8 +28,11 @@ list(APPEND MILKDROP_SOURCES
 
 add_executable(milkdrop3 ${MILKDROP_SOURCES})
 
+# Link EEL2 library
+target_link_libraries(milkdrop3 PRIVATE eel2)
+
 # Link KissFFT
-target_link_libraries(milkdrop3 kissfft::kissfft)
+target_link_libraries(milkdrop3 PRIVATE kissfft::kissfft)
 target_include_directories(milkdrop3 PRIVATE ${kissfft_SOURCE_DIR})
 
 target_include_directories(milkdrop3 PRIVATE
@@ -34,9 +40,9 @@ target_include_directories(milkdrop3 PRIVATE
   ${CMAKE_SOURCE_DIR}/include
 )
 
-target_link_libraries(milkdrop3
-  # glfw (will be added back when window dependencies are resolved)
-)
+# target_link_libraries(milkdrop3
+#   # glfw (will be added back when window dependencies are resolved)
+# )
 
 # Audio backend linking (disabled for now - will be fixed in later tasks)
 # if(PIPEWIRE_FOUND)
