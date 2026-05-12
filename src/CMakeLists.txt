@@ -21,6 +21,7 @@ endif()
 
 list(APPEND MILKDROP_SOURCES
   window/glfw_window.cpp
+  window/factory.cpp
   graphics/opengl_device.cpp
   core/visualization.cpp
 )

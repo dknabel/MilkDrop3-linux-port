@@ -23,3 +23,4 @@ public:
 
 // Factory function
 Window* createWindow();
+void deleteWindow(Window* window);
