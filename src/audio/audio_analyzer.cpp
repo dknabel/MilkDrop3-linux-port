@@ -13,6 +13,17 @@ AudioAnalyzer::AudioAnalyzer(int fftSize)
   }
 
   buffer_.resize(fftSize, 0.0f);
+
+  // Initialize KissFFT
+  fftConfig_ = kiss_fft_alloc(fftSize, 0, nullptr, nullptr);
+  fftInput_.resize(fftSize);
+  fftOutput_.resize(fftSize);
+}
+
+AudioAnalyzer::~AudioAnalyzer() {
+  if (fftConfig_) {
+    kiss_fft_free(fftConfig_);
+  }
 }
 
 std::vector<float> AudioAnalyzer::analyze(const std::vector<float>& samples) {
@@ -30,16 +41,15 @@ std::vector<float> AudioAnalyzer::analyze(const std::vector<float>& samples) {
   // Apply window
   applyWindow(buffer_);
 
-  // Simple frequency magnitude estimation (placeholder)
-  // Full implementation would use FFT library (FFTPACK, KissFFT, etc.)
-  std::vector<float> freqBins(fftSize_ / 2);
+  // Compute FFT using KissFFT
+  computeFFT();
 
-  // For MVP: simple energy calculation per frequency band
+  // Extract magnitude spectrum
+  std::vector<float> freqBins(fftSize_ / 2);
   for (int i = 0; i < fftSize_ / 2; ++i) {
-    int idx = (i * 2);
-    if (idx < (int)buffer_.size()) {
-      freqBins[i] = std::abs(buffer_[idx]) * window_[idx];
-    }
+    float real = fftOutput_[i].r;
+    float imag = fftOutput_[i].i;
+    freqBins[i] = std::sqrt(real * real + imag * imag) / fftSize_;
   }
 
   return freqBins;
@@ -51,7 +61,13 @@ void AudioAnalyzer::applyWindow(std::vector<float>& samples) {
   }
 }
 
-void AudioAnalyzer::computeFFT(std::vector<std::complex<float>>& data) {
-  // TODO: Implement proper FFT using FFTPACK or KissFFT library
-  // This is a placeholder; real implementation will use a proven FFT library
+void AudioAnalyzer::computeFFT() {
+  // Convert float samples to complex format
+  for (int i = 0; i < fftSize_; ++i) {
+    fftInput_[i].r = buffer_[i];
+    fftInput_[i].i = 0.0f;
+  }
+
+  // Perform FFT
+  kiss_fft(fftConfig_, fftInput_.data(), fftOutput_.data());
 }
