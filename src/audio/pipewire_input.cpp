@@ -133,6 +133,31 @@ std::string PipeWireInput::getDefaultDevice() const {
   return "default";
 }
 
+bool PipeWireInput::attemptReconnect() {
+  if (reconnectAttempts_ >= MAX_RECONNECT_ATTEMPTS) {
+    std::cerr << "Max reconnection attempts reached\n";
+    return false;
+  }
+
+  reconnectAttempts_++;
+  std::cout << "PipeWire reconnection attempt " << reconnectAttempts_ << "\n";
+
+  // Cleanup old stream
+  if (stream_) {
+    pw_stream_disconnect(stream_);
+    pw_stream_destroy(stream_);
+    stream_ = nullptr;
+  }
+
+  // Try to reinitialize
+  if (initialize("default")) {
+    reconnectAttempts_ = 0;
+    return true;
+  }
+
+  return false;
+}
+
 void PipeWireInput::onStreamProcess(void* userData) {
   PipeWireInput* self = reinterpret_cast<PipeWireInput*>(userData);
   if (!self || !self->stream_) return;
@@ -167,18 +192,24 @@ void PipeWireInput::onStreamProcess(void* userData) {
 
 void PipeWireInput::onStreamStateChange(void* userData, pw_stream_state old,
                                        pw_stream_state state, const char* error) {
+  PipeWireInput* self = reinterpret_cast<PipeWireInput*>(userData);
+  if (!self) return;
+
   if (error) {
     std::cerr << "PipeWire stream error: " << error << "\n";
   }
 
   switch (state) {
     case PW_STREAM_STATE_STREAMING:
-      std::cout << "PipeWire stream streaming\n";
+      self->isConnected_ = true;
+      std::cout << "PipeWire stream connected\n";
       break;
     case PW_STREAM_STATE_PAUSED:
+      self->isConnected_ = false;
       std::cout << "PipeWire stream paused\n";
       break;
     case PW_STREAM_STATE_ERROR:
+      self->isConnected_ = false;
       std::cerr << "PipeWire stream error state\n";
       break;
     default:

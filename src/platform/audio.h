@@ -14,6 +14,11 @@ public:
   virtual bool getAudioFrame(AudioFrame& outFrame) = 0;
   virtual std::vector<std::string> listDevices() const = 0;
   virtual std::string getDefaultDevice() const = 0;
+
+  // Resilience interface
+  virtual bool isConnected() const = 0;
+  virtual bool attemptReconnect() = 0;
+  virtual int getReconnectAttempts() const = 0;
 };
 
 // Factory function

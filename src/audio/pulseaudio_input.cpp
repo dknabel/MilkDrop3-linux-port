@@ -142,6 +142,31 @@ std::string PulseAudioInput::getDefaultDevice() const {
   return "default";
 }
 
+bool PulseAudioInput::attemptReconnect() {
+  if (reconnectAttempts_ >= MAX_RECONNECT_ATTEMPTS) {
+    std::cerr << "Max reconnection attempts reached\n";
+    return false;
+  }
+
+  reconnectAttempts_++;
+  std::cout << "PulseAudio reconnection attempt " << reconnectAttempts_ << "\n";
+
+  // Cleanup old stream
+  if (stream_) {
+    pa_stream_disconnect(stream_);
+    pa_stream_unref(stream_);
+    stream_ = nullptr;
+  }
+
+  // Try to reinitialize
+  if (initialize("default")) {
+    reconnectAttempts_ = 0;
+    return true;
+  }
+
+  return false;
+}
+
 void PulseAudioInput::onContextStateCallback(pa_context* c, void* userdata) {
   pa_context_state state = pa_context_get_state(c);
 
@@ -161,16 +186,21 @@ void PulseAudioInput::onContextStateCallback(pa_context* c, void* userdata) {
 }
 
 void PulseAudioInput::onStreamStateCallback(pa_stream* p, void* userdata) {
-  pa_stream_state state = pa_stream_get_state(p);
+  PulseAudioInput* self = reinterpret_cast<PulseAudioInput*>(userdata);
+  if (!self) return;
 
+  pa_stream_state state = pa_stream_get_state(p);
   switch (state) {
     case PA_STREAM_READY:
+      self->isConnected_ = true;
       std::cout << "PulseAudio stream ready\n";
       break;
     case PA_STREAM_FAILED:
+      self->isConnected_ = false;
       std::cerr << "PulseAudio stream failed: " << pa_strerror(pa_context_errno(pa_stream_get_context(p))) << "\n";
       break;
     case PA_STREAM_TERMINATED:
+      self->isConnected_ = false;
       std::cout << "PulseAudio stream terminated\n";
       break;
     default:

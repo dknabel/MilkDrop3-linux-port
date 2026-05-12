@@ -17,6 +17,10 @@ public:
   std::vector<std::string> listDevices() const override;
   std::string getDefaultDevice() const override;
 
+  bool isConnected() const override { return isConnected_ && stream_; }
+  bool attemptReconnect() override;
+  int getReconnectAttempts() const override { return reconnectAttempts_; }
+
 private:
   pa_mainloop_api* mainLoop_;
   pa_context* context_;
@@ -27,6 +31,9 @@ private:
   std::mutex bufferLock_;
 
   bool isInitialized_;
+  int reconnectAttempts_ = 0;
+  static constexpr int MAX_RECONNECT_ATTEMPTS = 5;
+  bool isConnected_ = false;
 
   static void onContextStateCallback(pa_context* c, void* userdata);
   static void onStreamStateCallback(pa_stream* p, void* userdata);
