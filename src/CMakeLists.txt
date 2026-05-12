@@ -23,7 +23,6 @@ set(MILKDROP_SOURCES
 list(APPEND MILKDROP_SOURCES
   window/factory.cpp
   graphics/factory.cpp
-  core/visualization.cpp
 )
 
 add_executable(milkdrop3 ${MILKDROP_SOURCES})
@@ -34,6 +33,7 @@ target_link_libraries(milkdrop3 PRIVATE
   expression_evaluator
   eel2
   profiler
+  visualization
 )
 
 # Link KissFFT
