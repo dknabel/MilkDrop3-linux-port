@@ -1,0 +1,15 @@
+build/
+*.o
+*.a
+*.so
+*.dylib
+.DS_Store
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+CMakeFiles/
+cmake_install.cmake
+Makefile
+milkdrop3
