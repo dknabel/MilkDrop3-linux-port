@@ -19,7 +19,7 @@ bool PresetBrowser::scanPresets(const std::string& defaultPath) {
   std::filesystem::path presetDir(basePath_);
 
   if (!std::filesystem::exists(presetDir)) {
-    std::cout << "Preset directory not found: " << basePath_ << "\n";
+    std::cerr << "Preset directory not found: " << basePath_ << "\n";
     return false;
   }
 
@@ -61,7 +61,7 @@ void PresetBrowser::previousPreset() {
 
 std::string PresetBrowser::getCurrentPresetPath() const {
   if (currentIndex_ < presets_.size()) {
-    return basePath_ + "/" + presets_[currentIndex_];
+    return (std::filesystem::path(basePath_) / presets_[currentIndex_]).string();
   }
   return "";
 }
