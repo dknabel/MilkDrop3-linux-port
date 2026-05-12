@@ -3,6 +3,7 @@ set(MILKDROP_SOURCES
   platform/config.cpp
   platform/types.h
   audio/audio_analyzer.cpp
+  audio/factory.cpp
   graphics/shader.cpp
   window/input.h
   ui/preset_manager.cpp
