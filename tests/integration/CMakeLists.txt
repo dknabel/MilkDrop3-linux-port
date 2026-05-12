@@ -30,3 +30,24 @@ target_include_directories(test_real_presets PRIVATE
 )
 
 add_test(NAME RealPresets COMMAND test_real_presets)
+
+add_executable(test_application
+  test_application.cpp
+  ${CMAKE_SOURCE_DIR}/src/audio/audio_analyzer.cpp
+)
+
+target_include_directories(test_application PRIVATE
+  ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_application
+  gtest gtest_main
+  ui
+  visualization
+  preset_parser
+  expression_evaluator
+  kissfft::kissfft
+)
+
+add_test(NAME Application COMMAND test_application)
