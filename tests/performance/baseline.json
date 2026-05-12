@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "timestamp": "2026-05-12T00:00:00Z",
+  "metrics": {
+    "eval_simple": {
+      "avgMs": 0.05,
+      "maxMs": 0.15,
+      "tolerancePercent": 20.0
+    },
+    "eval_complex": {
+      "avgMs": 0.15,
+      "maxMs": 0.30,
+      "tolerancePercent": 30.0
+    },
+    "render_commands": {
+      "avgMs": 1.5,
+      "maxMs": 3.0,
+      "tolerancePercent": 50.0
+    },
+    "e2e_frame": {
+      "avgMs": 0.032,
+      "maxMs": 0.081,
+      "tolerancePercent": 100.0
+    },
+    "e2e_multi_preset": {
+      "avgMs": 0.017,
+      "maxMs": 0.050,
+      "tolerancePercent": 100.0
+    },
+    "e2e_sustained": {
+      "avgMs": 0.017,
+      "maxMs": 0.081,
+      "tolerancePercent": 100.0
+    }
+  }
+}

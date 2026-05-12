@@ -10,6 +10,14 @@ target_include_directories(profiler PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/../..
 )
 
+add_library(performance_baseline STATIC
+  performance_baseline.cpp
+)
+
+target_include_directories(performance_baseline PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/../..
+)
+
 add_library(visualization STATIC
   visualization.cpp
 )
