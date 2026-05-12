@@ -33,7 +33,7 @@ std::string ConfigManager::getConfigDir() const {
 
 bool ConfigManager::load() {
   try {
-    configPath_ = getConfigDir() + "/config.json";
+    configPath_ = (fs::path(getConfigDir()) / "config.json").string();
 
     std::ifstream file(configPath_);
     if (!file.is_open()) {
@@ -52,7 +52,7 @@ bool ConfigManager::load() {
 
 bool ConfigManager::save() {
   try {
-    configPath_ = getConfigDir() + "/config.json";
+    configPath_ = (fs::path(getConfigDir()) / "config.json").string();
 
     std::ofstream file(configPath_);
     if (!file.is_open()) {
