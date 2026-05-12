@@ -18,6 +18,17 @@ endif()
 # GLM header-only
 find_package(GLM REQUIRED)
 
+# GLAD loader (header-only version)
+# Download from https://glad.dav1d.de/ if not present
+if(NOT EXISTS "${CMAKE_SOURCE_DIR}/include/glad/glad.h")
+  message(WARNING "GLAD not found. Download from https://glad.dav1d.de/:
+  1. Select OpenGL version 3.3 (Core profile)
+  2. Extract to include/ directory
+  Continuing without GLAD - build will fail at link time")
+endif()
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
 # Subdirectory
 add_subdirectory(src)
 

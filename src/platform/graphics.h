@@ -40,5 +40,6 @@ public:
   virtual void present() = 0;
 };
 
-// Factory function
+// Factory functions
 GraphicsDevice* createGraphicsDevice();
+void deleteGraphicsDevice(GraphicsDevice* device);

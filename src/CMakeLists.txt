@@ -1,10 +1,13 @@
 set(MILKDROP_SOURCES
+  glad.c
   main.cpp
   platform/config.cpp
   platform/types.h
   audio/audio_analyzer.cpp
   audio/factory.cpp
   graphics/shader.cpp
+  graphics/opengl_device.cpp
+  graphics/factory.cpp
   window/input.h
   ui/preset_manager.cpp
   ui/overlay.cpp
@@ -28,7 +31,10 @@ list(APPEND MILKDROP_SOURCES
 
 add_executable(milkdrop3 ${MILKDROP_SOURCES})
 
-target_include_directories(milkdrop3 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(milkdrop3 PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/include
+)
 
 target_link_libraries(milkdrop3
   OpenGL::OpenGL
