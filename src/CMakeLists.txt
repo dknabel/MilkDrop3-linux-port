@@ -43,7 +43,7 @@ target_include_directories(milkdrop3 PRIVATE
 target_link_libraries(milkdrop3
   OpenGL::OpenGL
   glfw
-  glm::glm
+  glm
 )
 
 if(PIPEWIRE_FOUND)

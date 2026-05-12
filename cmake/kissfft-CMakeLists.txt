@@ -1,0 +1,30 @@
+cmake_minimum_required(VERSION 3.16)
+project(kissfft C CXX)
+
+# KissFFT library - static library target
+add_library(kissfft STATIC
+  kiss_fft.c
+)
+
+# Public include directories
+target_include_directories(kissfft PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<INSTALL_INTERFACE:include>
+)
+
+# Create alias target for consistency with find_package pattern
+add_library(kissfft::kissfft ALIAS kissfft)
+
+# Install rules
+install(TARGETS kissfft
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+install(FILES
+  kiss_fft.h
+  kissfft.hh
+  kissfft_i32.hh
+  _kiss_fft_guts.h
+  DESTINATION include
+)
