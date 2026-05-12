@@ -27,6 +27,8 @@ bool PipeWireInput::initialize(const std::string& deviceName) {
     context_ = pw_context_new(pw_main_loop_get_loop(mainLoop_), nullptr, 0);
     if (!context_) {
       std::cerr << "Failed to create PipeWire context\n";
+      pw_main_loop_destroy(mainLoop_);
+      mainLoop_ = nullptr;
       return false;
     }
 
@@ -34,6 +36,10 @@ bool PipeWireInput::initialize(const std::string& deviceName) {
     core_ = pw_context_connect(context_, nullptr, 0);
     if (!core_) {
       std::cerr << "Failed to connect to PipeWire core\n";
+      pw_context_destroy(context_);
+      context_ = nullptr;
+      pw_main_loop_destroy(mainLoop_);
+      mainLoop_ = nullptr;
       return false;
     }
 

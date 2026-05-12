@@ -42,6 +42,11 @@ bool PulseAudioInput::initialize(const std::string& deviceName) {
     // Start main loop
     if (pa_threaded_mainloop_start(threadedMainLoop_) < 0) {
       std::cerr << "Failed to start PulseAudio main loop\n";
+      pa_context_disconnect(context_);
+      pa_context_unref(context_);
+      pa_threaded_mainloop_free(threadedMainLoop_);
+      threadedMainLoop_ = nullptr;
+      context_ = nullptr;
       return false;
     }
 
