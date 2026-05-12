@@ -110,8 +110,6 @@ public:
 
     auto& configMgr = ConfigManager::getInstance();
     configMgr.save();
-
-    glfwTerminate();
   }
 
   bool run() {
