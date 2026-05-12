@@ -2,6 +2,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <array>
 #include <cstdint>
 
 struct InputState {
@@ -29,13 +30,33 @@ enum class BlendMode {
   Alpha
 };
 
+enum class RenderCommandType {
+  Clear,
+  DrawWaveform,
+  DrawShape,
+  DrawCustom
+};
+
 struct RenderCommand {
-  // Simplified render command for visualization
-  // Full implementation will depend on Milkdrop3 core
-  uint32_t shaderHandle;
-  uint32_t vertexBufferHandle;
-  uint32_t indexCount;
-  BlendMode blendMode;
+  RenderCommandType type;
+
+  // Clear command data
+  std::array<float, 4> clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
+
+  // Waveform command data
+  std::vector<float> frequencyBins;
+  std::array<float, 4> waveColor = {1.0f, 1.0f, 1.0f, 1.0f};
+
+  // Shape command data
+  std::array<float, 2> shapePosition = {0.5f, 0.5f};
+  float shapeRadius = 0.1f;
+  std::array<float, 4> shapeColor = {1.0f, 0.0f, 0.0f, 1.0f};
+
+  // Legacy render command data (for backward compatibility)
+  uint32_t shaderHandle = 0;
+  uint32_t vertexBufferHandle = 0;
+  uint32_t indexCount = 0;
+  BlendMode blendMode = BlendMode::Alpha;
 };
 
 struct Config {

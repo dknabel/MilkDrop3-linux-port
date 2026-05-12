@@ -208,17 +208,17 @@ void VisualizationEngine::generateRenderCommands(
   // - Generate custom warp/blend commands from preset state
 
   // For now: generate clear command only
-  milkdrop::RenderCommand clearCmd;
+  RenderCommand clearCmd;
   clearCmd.shaderHandle = 0;
   clearCmd.vertexBufferHandle = 0;
   clearCmd.indexCount = 0;
-  clearCmd.blendMode = milkdrop::BlendMode::Replace;
+  clearCmd.blendMode = BlendMode::Replace;
   pendingCommands_.push_back(clearCmd);
 }
 
-std::vector<milkdrop::RenderCommand> VisualizationEngine::getRenderCommands() {
+std::vector<RenderCommand> VisualizationEngine::getRenderCommands() {
   // Return and clear pending commands
-  std::vector<milkdrop::RenderCommand> commands = pendingCommands_;
+  std::vector<RenderCommand> commands = pendingCommands_;
   pendingCommands_.clear();
   return commands;
 }

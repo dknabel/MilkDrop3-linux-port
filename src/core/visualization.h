@@ -19,7 +19,7 @@ public:
   void update(const std::vector<float>& frequencyBins, float deltaTime);
 
   // Get pending render commands
-  std::vector<milkdrop::RenderCommand> getRenderCommands();
+  std::vector<RenderCommand> getRenderCommands();
 
   // Reset animation state
   void reset();
@@ -32,7 +32,7 @@ private:
   milkdrop::PresetParser parser_;
   milkdrop::ExpressionEvaluator evaluator_;
 
-  std::vector<milkdrop::RenderCommand> pendingCommands_;
+  std::vector<RenderCommand> pendingCommands_;
   float elapsedTime_;
 
   // Helper methods

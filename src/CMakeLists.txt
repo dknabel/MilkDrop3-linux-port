@@ -28,8 +28,12 @@ list(APPEND MILKDROP_SOURCES
 
 add_executable(milkdrop3 ${MILKDROP_SOURCES})
 
-# Link EEL2 library
-target_link_libraries(milkdrop3 PRIVATE eel2)
+# Link core libraries (preset parser, expression evaluator, etc)
+target_link_libraries(milkdrop3 PRIVATE
+  preset_parser
+  expression_evaluator
+  eel2
+)
 
 # Link KissFFT
 target_link_libraries(milkdrop3 PRIVATE kissfft::kissfft)

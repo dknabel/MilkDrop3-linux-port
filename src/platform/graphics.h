@@ -4,6 +4,9 @@
 #include <cstdint>
 #include "types.h"
 
+// Forward declaration
+class Window;
+
 class Shader {
 public:
   virtual ~Shader() = default;

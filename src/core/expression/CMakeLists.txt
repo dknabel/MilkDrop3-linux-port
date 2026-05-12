@@ -44,4 +44,5 @@ target_link_libraries(expression_evaluator PUBLIC eel2)
 target_include_directories(expression_evaluator PUBLIC
   ${CMAKE_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/eel2
 )
