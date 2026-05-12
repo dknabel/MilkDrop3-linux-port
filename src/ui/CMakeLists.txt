@@ -1,6 +1,7 @@
 # UI Components Library
 add_library(ui STATIC
   display_manager.cpp
+  preset_browser.cpp
 )
 
 # Include directories
