@@ -53,15 +53,20 @@ bool PipeWireInput::initialize(const std::string& deviceName) {
 
     // Create recording stream
     uint8_t buffer[1024];
-    spa_audio_info_raw audio_info = SPA_AUDIO_INFO_RAW_INIT(
-      .format = SPA_AUDIO_FORMAT_F32LE,
+    spa_audio_info_raw audio_info = {
+      .format = SPA_AUDIO_FORMAT_F32,
       .channels = 2,
       .rate = 48000
-    );
+    };
 
     const spa_pod *params[1];
     struct spa_pod_builder b = SPA_POD_BUILDER_INIT(buffer, sizeof(buffer));
-    params[0] = spa_format_audio_raw_build(&b, SPA_PARAM_EnumFormat, &audio_info);
+    params[0] = spa_pod_builder_add_object(&b, SPA_TYPE_OBJECT_Format, SPA_PARAM_EnumFormat,
+      SPA_FORMAT_mediaType, SPA_POD_Id(SPA_MEDIA_TYPE_audio),
+      SPA_FORMAT_mediaSubtype, SPA_POD_Id(SPA_MEDIA_SUBTYPE_raw),
+      SPA_FORMAT_AUDIO_format, SPA_POD_Id(SPA_AUDIO_FORMAT_F32),
+      SPA_FORMAT_AUDIO_channels, SPA_POD_Int(2),
+      SPA_FORMAT_AUDIO_rate, SPA_POD_Int(48000));
 
     stream_ = pw_stream_new_simple(
       pw_main_loop_get_loop(mainLoop_),
