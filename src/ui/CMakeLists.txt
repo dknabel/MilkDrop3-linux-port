@@ -2,6 +2,7 @@
 add_library(ui STATIC
   display_manager.cpp
   preset_browser.cpp
+  visual_feedback.cpp
 )
 
 # Include directories
