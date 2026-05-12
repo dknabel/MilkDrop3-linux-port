@@ -1,6 +1,6 @@
 // src/graphics/opengl_device.cpp
 #include "opengl_device.h"
-#include <glad/glad.h>
+#include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -96,10 +96,14 @@ void OpenGLDevice::shutdown() {
 }
 
 bool OpenGLDevice::initializeGLAD() {
-  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-    std::cerr << "Failed to load OpenGL functions with GLAD\n";
+  // Initialize GLEW instead of GLAD
+  glewExperimental = GL_TRUE;
+  GLenum glewErr = glewInit();
+  if (glewErr != GLEW_OK) {
+    std::cerr << "Failed to initialize GLEW: " << glewGetErrorString(glewErr) << "\n";
     return false;
   }
+  std::cout << "GLEW initialized successfully\n";
   return true;
 }
 

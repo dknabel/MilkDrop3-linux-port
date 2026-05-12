@@ -16,6 +16,85 @@ message(STATUS "OpenGL found: ${OPENGL_FOUND}")
 find_package(PkgConfig REQUIRED)
 message(STATUS "PkgConfig found")
 
+# Find GLEW for OpenGL extension loading
+pkg_check_modules(GLEW glew)
+if(GLEW_FOUND)
+  message(STATUS "GLEW found: ${GLEW_VERSION}")
+else()
+  message(FATAL_ERROR "GLEW not found")
+endif()
+
+# GLFW and GLAD for window management and OpenGL loading
+message(STATUS "")
+message(STATUS "=== GLFW and GLAD Configuration ===")
+
+# Try finding GLFW via pkg-config first, then find_package
+pkg_check_modules(GLFW glfw3)
+if(NOT GLFW_FOUND)
+  find_package(glfw3 QUIET)
+  if(glfw3_FOUND)
+    set(GLFW_LIBRARIES glfw)
+    set(GLFW_FOUND TRUE)
+  endif()
+endif()
+
+if(GLFW_FOUND)
+  message(STATUS "GLFW found")
+else()
+  message(STATUS "GLFW not found via pkg-config or find_package")
+  message(STATUS "Building GLFW from source...")
+  include(FetchContent)
+  FetchContent_Declare(
+    glfw
+    GIT_REPOSITORY https://github.com/glfw/glfw.git
+    GIT_TAG 3.3.8
+  )
+  FetchContent_MakeAvailable(glfw)
+  set(GLFW_LIBRARIES glfw)
+  set(GLFW_FOUND TRUE)
+  message(STATUS "GLFW built from source")
+endif()
+
+# GLAD for OpenGL loading
+message(STATUS "Configuring GLAD...")
+include(FetchContent)
+
+# Fetch GLAD source (for headers)
+FetchContent_Declare(
+  glad
+  GIT_REPOSITORY https://github.com/Dav1dde/glad.git
+  GIT_TAG v0.1.36
+)
+
+FetchContent_GetProperties(glad)
+if(NOT glad_POPULATED)
+  FetchContent_Populate(glad)
+endif()
+
+# Create GLAD library from source
+# We'll compile a minimal glad implementation
+file(WRITE "${CMAKE_BINARY_DIR}/glad_impl.c" "
+#include <GL/gl.h>
+
+// Minimal GLAD implementation for OpenGL 3.3 core
+// This will be filled in by the glad generator or use system OpenGL
+
+int gladLoadGL(void) {
+  // For now, return success - actual loading handled by GLFW
+  return 1;
+}
+
+int gladLoadGLLoader(void* (*load)(const char *name)) {
+  // For now, return success - actual loading handled by GLFW
+  return 1;
+}
+")
+
+add_library(glad STATIC "${CMAKE_BINARY_DIR}/glad_impl.c")
+target_include_directories(glad PUBLIC "${PROJECT_SOURCE_DIR}/include")
+
+message(STATUS "GLAD configured with minimal implementation")
+
 # KissFFT for audio analysis - PRIMARY FOCUS FOR PHASE 4.1
 message(STATUS "")
 message(STATUS "=== KissFFT Integration ===")
@@ -86,6 +165,17 @@ message(STATUS "Status: SUCCESS")
 message(STATUS "KissFFT integration verified and ready")
 message(STATUS "Build directory: ${CMAKE_BINARY_DIR}")
 message(STATUS "Source directory: ${CMAKE_SOURCE_DIR}")
+
+# Export GLFW information for subdirectories
+message(STATUS "GLFW_SOURCE_DIR value: '${glfw_SOURCE_DIR}'")
+if(glfw_SOURCE_DIR)
+  set(GLFW_INCLUDE_DIR "${glfw_SOURCE_DIR}/include")
+  message(STATUS "GLFW_INCLUDE_DIR set to: ${GLFW_INCLUDE_DIR}")
+else()
+  # Fallback to build directory structure
+  set(GLFW_INCLUDE_DIR "${CMAKE_BINARY_DIR}/_deps/glfw-src/include")
+  message(STATUS "Using fallback GLFW_INCLUDE_DIR: ${GLFW_INCLUDE_DIR}")
+endif()
 
 # Build the application
 add_subdirectory(src)

@@ -1,6 +1,9 @@
 # Build core libraries first (expression, preset, etc)
 add_subdirectory(core)
 
+# Build UI components
+add_subdirectory(ui)
+
 set(MILKDROP_SOURCES
   main.cpp
   platform/config.cpp
@@ -22,7 +25,10 @@ set(MILKDROP_SOURCES
 
 list(APPEND MILKDROP_SOURCES
   window/factory.cpp
+  window/glfw_window.cpp
   graphics/factory.cpp
+  graphics/opengl_device.cpp
+  graphics/shader.cpp
 )
 
 add_executable(milkdrop3 ${MILKDROP_SOURCES})
@@ -34,7 +40,14 @@ target_link_libraries(milkdrop3 PRIVATE
   eel2
   profiler
   visualization
+  ui
+  glfw
+  ${GLEW_LIBRARIES}
+  OpenGL::OpenGL
 )
+
+# Add GLEW include directories
+target_include_directories(milkdrop3 PRIVATE ${GLEW_INCLUDE_DIRS})
 
 # Link KissFFT
 target_link_libraries(milkdrop3 PRIVATE kissfft::kissfft)

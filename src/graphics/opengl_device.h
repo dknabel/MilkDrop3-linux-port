@@ -3,7 +3,7 @@
 #include "../platform/graphics.h"
 #include "../platform/window.h"
 #include "shader.h"
-#include <glad/glad.h>
+#include <GL/glew.h>
 #include <unordered_map>
 #include <memory>
 
