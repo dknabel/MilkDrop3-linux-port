@@ -75,6 +75,12 @@ public:
 private:
   NSEEL_VMCTX vm_;
   std::unordered_map<std::string, double*> variables_;
+
+  // Cache compiled expressions to avoid recompilation
+  std::unordered_map<std::string, NSEEL_CODEHANDLE> codeCache_;
+
+  // Reserve initial capacity for frequently-updated variables
+  static constexpr size_t VARIABLE_MAP_INITIAL_SIZE = 256;
 };
 
 }  // namespace milkdrop

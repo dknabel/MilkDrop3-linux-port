@@ -7,6 +7,13 @@ namespace milkdrop {
 ExpressionEvaluator::ExpressionEvaluator() : vm_(nullptr) {}
 
 ExpressionEvaluator::~ExpressionEvaluator() {
+  // Free all cached code handles first
+  for (auto& pair : codeCache_) {
+    NSEEL_code_free(pair.second);
+  }
+  codeCache_.clear();
+
+  // Then free the VM
   if (vm_) {
     NSEEL_VM_free(vm_);
     vm_ = nullptr;
@@ -28,6 +35,9 @@ bool ExpressionEvaluator::initialize() {
     std::cerr << "Failed to allocate EEL2 VM context" << std::endl;
     return false;
   }
+
+  // Reserve capacity for typical preset variables
+  variables_.reserve(VARIABLE_MAP_INITIAL_SIZE);
 
   return true;
 }
@@ -69,12 +79,21 @@ NSEEL_CODEHANDLE ExpressionEvaluator::compile(const std::string& code) {
     return nullptr;
   }
 
+  // Check if already compiled
+  auto it = codeCache_.find(code);
+  if (it != codeCache_.end()) {
+    return it->second;
+  }
+
+  // Compile new code
   NSEEL_CODEHANDLE handle = NSEEL_code_compile(vm_, code.c_str());
   if (!handle) {
     std::cerr << "Failed to compile EEL2 code" << std::endl;
-    // In real implementation, we'd capture error messages from EEL2
+    return nullptr;
   }
 
+  // Cache the compiled handle
+  codeCache_[code] = handle;
   return handle;
 }
 
