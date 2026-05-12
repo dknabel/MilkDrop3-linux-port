@@ -124,7 +124,7 @@ void VisualizationEngine::evaluatePerFrameEquations(
 
   milkdrop::PresetState& state = currentPreset_->state;
 
-  // Update audio bucket variables (q[0..63])
+  // Batch-update all frequency buckets at once
   int bucketCount = std::min(milkdrop::FREQUENCY_BINS, static_cast<int>(frequencyBins.size()));
   for (int i = 0; i < bucketCount; ++i) {
     std::string varName = "q" + std::to_string(i);
@@ -166,7 +166,7 @@ void VisualizationEngine::evaluatePerFrameEquations(
     if (val) state.wave_scale = *val;
   }
 
-  // Execute shape per-frame equations
+  // Execute shape per-frame equations only for enabled shapes
   for (size_t i = 0; i < currentPreset_->shapes.size(); ++i) {
     if (!currentPreset_->shapes[i].enabled) continue;
 
@@ -180,7 +180,7 @@ void VisualizationEngine::evaluatePerFrameEquations(
     }
   }
 
-  // Execute wave per-point equations
+  // Execute wave per-point equations only for enabled waves
   for (size_t i = 0; i < currentPreset_->waves.size(); ++i) {
     if (!currentPreset_->waves[i].enabled) continue;
 
@@ -198,22 +198,41 @@ void VisualizationEngine::generateRenderCommands(
   if (!currentPreset_) return;
 
   pendingCommands_.clear();
+  // Pre-allocate: typical = 1 clear + 4 waves + 16 shapes + custom
+  pendingCommands_.reserve(32);
 
   const milkdrop::PresetState& state = currentPreset_->state;
 
-  // TODO (Task 6): Implement full render command generation
-  // - Generate clear command
-  // - Generate waveform rendering commands (from waves)
-  // - Generate shape rendering commands (from shapes)
-  // - Generate custom warp/blend commands from preset state
-
-  // For now: generate clear command only
+  // Generate clear command
   RenderCommand clearCmd;
-  clearCmd.shaderHandle = 0;
-  clearCmd.vertexBufferHandle = 0;
-  clearCmd.indexCount = 0;
-  clearCmd.blendMode = BlendMode::Replace;
+  clearCmd.type = RenderCommandType::Clear;
+  clearCmd.clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
   pendingCommands_.push_back(clearCmd);
+
+  // Generate waveform rendering commands
+  for (size_t w = 0; w < currentPreset_->waves.size(); ++w) {
+    const milkdrop::Wave& wave = currentPreset_->waves[w];
+    if (!wave.enabled) continue;
+
+    RenderCommand waveCmd;
+    waveCmd.type = RenderCommandType::DrawWaveform;
+    waveCmd.waveColor = {wave.r, wave.g, wave.b, wave.a};
+    waveCmd.frequencyBins = frequencyBins;
+    pendingCommands_.push_back(waveCmd);
+  }
+
+  // Generate shape rendering commands
+  for (size_t s = 0; s < currentPreset_->shapes.size(); ++s) {
+    const milkdrop::Shape& shape = currentPreset_->shapes[s];
+    if (!shape.enabled) continue;
+
+    RenderCommand shapeCmd;
+    shapeCmd.type = RenderCommandType::DrawShape;
+    shapeCmd.shapePosition = {shape.x, shape.y};
+    shapeCmd.shapeRadius = shape.radius;
+    shapeCmd.shapeColor = {shape.r, shape.g, shape.b, shape.a};
+    pendingCommands_.push_back(shapeCmd);
+  }
 }
 
 std::vector<RenderCommand> VisualizationEngine::getRenderCommands() {
