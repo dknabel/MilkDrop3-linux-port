@@ -34,3 +34,14 @@ target_compile_options(eel2 PRIVATE
   -Wno-unused-variable
   -Wno-unused-function
 )
+
+# C++ Wrapper Library
+add_library(expression_evaluator STATIC
+  expression_evaluator.cpp
+)
+
+target_link_libraries(expression_evaluator PUBLIC eel2)
+target_include_directories(expression_evaluator PUBLIC
+  ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}
+)
