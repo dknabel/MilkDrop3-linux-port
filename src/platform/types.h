@@ -13,6 +13,7 @@ struct InputState {
   bool key_right;       // next preset
   bool key_up;          // parameter up
   bool key_down;        // parameter down
+  bool key_q;           // quit
 };
 
 struct AudioFrame {

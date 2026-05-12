@@ -109,6 +109,7 @@ InputState InputHandler::getInputState(GLFWwindow* window) {
   state.key_right = isKeyPressed(window, GLFW_KEY_RIGHT);
   state.key_up = isKeyPressed(window, GLFW_KEY_UP);
   state.key_down = isKeyPressed(window, GLFW_KEY_DOWN);
+  state.key_q = isKeyPressed(window, GLFW_KEY_Q);
 
   return state;
 }
