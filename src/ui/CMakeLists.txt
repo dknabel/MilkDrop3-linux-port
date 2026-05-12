@@ -13,4 +13,5 @@ target_include_directories(ui PUBLIC
 target_link_libraries(ui PUBLIC
   glfw
   OpenGL::OpenGL
+  glad
 )
