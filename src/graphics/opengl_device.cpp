@@ -181,10 +181,21 @@ void OpenGLDevice::executeDrawWaveformCommand(const RenderCommand& cmd) {
 
   shader->use();
 
+  // Set blending mode
+  if (cmd.waveAdditive) {
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+  } else {
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  }
+
   // Set uniforms
   glm::mat4 projection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
   glm::mat4 view = glm::mat4(1.0f);
+
+  // Build model matrix from wave position
   glm::mat4 model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(cmd.wavePosition[0], cmd.wavePosition[1], 0.0f));
+  model = glm::scale(model, glm::vec3(0.4f, 0.4f, 1.0f));  // Scale down to fit screen
 
   shader->setUniform("projection", projection);
   shader->setUniform("view", view);
@@ -194,9 +205,10 @@ void OpenGLDevice::executeDrawWaveformCommand(const RenderCommand& cmd) {
 
   // Build vertex data from frequency bins
   std::vector<glm::vec2> vertices;
-  for (size_t i = 0; i < cmd.frequencyBins.size(); ++i) {
-    float x = static_cast<float>(i) / cmd.frequencyBins.size();
-    float y = cmd.frequencyBins[i];
+  size_t numPoints = cmd.wavePoints > 0 ? cmd.wavePoints : 512;
+  for (size_t i = 0; i < cmd.frequencyBins.size() && i < numPoints; ++i) {
+    float x = (static_cast<float>(i) / numPoints) - 0.5f;  // Center around origin
+    float y = cmd.frequencyBins[i] - 0.5f;
     vertices.push_back({x, y});
   }
 
@@ -220,6 +232,9 @@ void OpenGLDevice::executeDrawWaveformCommand(const RenderCommand& cmd) {
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
   waveformVertexCount_ = vertices.size();
+
+  // Restore default blending
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void OpenGLDevice::executeDrawShapeCommand(const RenderCommand& cmd) {

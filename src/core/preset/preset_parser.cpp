@@ -189,9 +189,9 @@ void PresetParser::parseWave(int waveIndex,
   for (int j = 1; j < 16; ++j) {
     std::string key = perFrameKey + std::to_string(j);
     if (props.count(key)) {
-      if (!wave.init_code.empty())
-        wave.init_code += "\n";
-      wave.init_code += props.at(key);
+      if (!wave.per_frame_code.empty())
+        wave.per_frame_code += "\n";
+      wave.per_frame_code += props.at(key);
     }
   }
 

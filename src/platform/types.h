@@ -46,6 +46,11 @@ struct RenderCommand {
   // Waveform command data
   std::vector<float> frequencyBins;
   std::array<float, 4> waveColor = {1.0f, 1.0f, 1.0f, 1.0f};
+  std::array<float, 2> wavePosition = {0.5f, 0.5f};
+  int waveAdditive = 0;
+  int waveUseDots = 0;
+  int waveThick = 0;
+  int wavePoints = 512;
 
   // Shape command data
   std::array<float, 2> shapePosition = {0.5f, 0.5f};

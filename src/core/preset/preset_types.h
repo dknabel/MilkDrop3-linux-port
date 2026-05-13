@@ -147,12 +147,18 @@ struct Wave {
   float b = 1.0f;
   float a = 1.0f;
 
+  // Position (for per-frame equations)
+  float x = 0.5f;
+  float y = 0.5f;
+
   // Number of points
   int points = 512;
 
   // EEL2 expressions
   std::string init_code;
+  std::string per_frame_code;
   std::string per_point_code;
+  NSEEL_CODEHANDLE per_frame_handle = nullptr;
   NSEEL_CODEHANDLE per_point_handle = nullptr;
 };
 

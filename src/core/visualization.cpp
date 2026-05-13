@@ -142,8 +142,8 @@ void VisualizationEngine::compilePresetExpressions(milkdrop::Preset& preset) {
     evaluator_.registerVariable(prefix + "a");
 
     // Set initial values
-    *evaluator_.getVariable(prefix + "x") = 0.5f;
-    *evaluator_.getVariable(prefix + "y") = 0.5f;
+    *evaluator_.getVariable(prefix + "x") = wave.x;
+    *evaluator_.getVariable(prefix + "y") = wave.y;
     *evaluator_.getVariable(prefix + "r") = wave.r;
     *evaluator_.getVariable(prefix + "g") = wave.g;
     *evaluator_.getVariable(prefix + "b") = wave.b;
@@ -155,6 +155,14 @@ void VisualizationEngine::compilePresetExpressions(milkdrop::Preset& preset) {
       if (initHandle) {
         evaluator_.execute(initHandle);
         evaluator_.freeCode(initHandle);
+      }
+    }
+
+    // Compile per-frame equations
+    if (!wave.per_frame_code.empty()) {
+      auto handle = evaluator_.compile(wave.per_frame_code);
+      if (handle) {
+        wave.per_frame_handle = handle;
       }
     }
 
@@ -309,11 +317,15 @@ void VisualizationEngine::evaluatePerFrameEquations(
     std::string prefix = "wave_" + std::to_string(i) + "_";
 
     // Execute per-frame equations
-    if (wave.per_point_handle) {
-      evaluator_.execute(wave.per_point_handle);
+    if (wave.per_frame_handle) {
+      evaluator_.execute(wave.per_frame_handle);
     }
 
     // Read back modified values from evaluator
+    if (auto* var = evaluator_.getVariable(prefix + "x"))
+      wave.x = *var;
+    if (auto* var = evaluator_.getVariable(prefix + "y"))
+      wave.y = *var;
     if (auto* var = evaluator_.getVariable(prefix + "r"))
       wave.r = *var;
     if (auto* var = evaluator_.getVariable(prefix + "g"))
@@ -358,6 +370,11 @@ void VisualizationEngine::generateRenderCommands(
     RenderCommand waveCmd;
     waveCmd.type = RenderCommandType::DrawWaveform;
     waveCmd.waveColor = {wave.r, wave.g, wave.b, wave.a};
+    waveCmd.wavePosition = {wave.x, wave.y};
+    waveCmd.waveAdditive = wave.additive;
+    waveCmd.waveUseDots = wave.use_dots;
+    waveCmd.waveThick = wave.thick;
+    waveCmd.wavePoints = wave.points;
     waveCmd.frequencyBins = frequencyBins;
     pendingCommands_.push_back(waveCmd);
     waveCount++;
