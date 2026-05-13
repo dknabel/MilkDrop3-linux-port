@@ -59,37 +59,118 @@ bool VisualizationEngine::loadPreset(const std::string& presetContent,
 }
 
 void VisualizationEngine::compilePresetExpressions(milkdrop::Preset& preset) {
-  // Compile per-frame equations
+  // Register shape variables in evaluator
+  for (size_t i = 0; i < preset.shapes.size(); ++i) {
+    if (!preset.shapes[i].enabled) continue;
+
+    milkdrop::Shape& shape = preset.shapes[i];
+    std::string prefix = "shape_" + std::to_string(i) + "_";
+
+    // Register shape properties as variables
+    evaluator_.registerVariable(prefix + "x");
+    evaluator_.registerVariable(prefix + "y");
+    evaluator_.registerVariable(prefix + "radius");
+    evaluator_.registerVariable(prefix + "angle");
+    evaluator_.registerVariable(prefix + "r");
+    evaluator_.registerVariable(prefix + "g");
+    evaluator_.registerVariable(prefix + "b");
+    evaluator_.registerVariable(prefix + "a");
+    evaluator_.registerVariable(prefix + "r2");
+    evaluator_.registerVariable(prefix + "g2");
+    evaluator_.registerVariable(prefix + "b2");
+    evaluator_.registerVariable(prefix + "a2");
+    evaluator_.registerVariable(prefix + "border_r");
+    evaluator_.registerVariable(prefix + "border_g");
+    evaluator_.registerVariable(prefix + "border_b");
+    evaluator_.registerVariable(prefix + "border_a");
+    evaluator_.registerVariable(prefix + "sides");
+    evaluator_.registerVariable(prefix + "tex_angle");
+    evaluator_.registerVariable(prefix + "tex_zoom");
+
+    // Set initial values
+    *evaluator_.getVariable(prefix + "x") = shape.x;
+    *evaluator_.getVariable(prefix + "y") = shape.y;
+    *evaluator_.getVariable(prefix + "radius") = shape.radius;
+    *evaluator_.getVariable(prefix + "angle") = shape.angle;
+    *evaluator_.getVariable(prefix + "r") = shape.r;
+    *evaluator_.getVariable(prefix + "g") = shape.g;
+    *evaluator_.getVariable(prefix + "b") = shape.b;
+    *evaluator_.getVariable(prefix + "a") = shape.a;
+    *evaluator_.getVariable(prefix + "r2") = shape.r2;
+    *evaluator_.getVariable(prefix + "g2") = shape.g2;
+    *evaluator_.getVariable(prefix + "b2") = shape.b2;
+    *evaluator_.getVariable(prefix + "a2") = shape.a2;
+    *evaluator_.getVariable(prefix + "border_r") = shape.border_r;
+    *evaluator_.getVariable(prefix + "border_g") = shape.border_g;
+    *evaluator_.getVariable(prefix + "border_b") = shape.border_b;
+    *evaluator_.getVariable(prefix + "border_a") = shape.border_a;
+    *evaluator_.getVariable(prefix + "sides") = shape.sides;
+    *evaluator_.getVariable(prefix + "tex_angle") = shape.tex_angle;
+    *evaluator_.getVariable(prefix + "tex_zoom") = shape.tex_zoom;
+
+    // Compile and execute init equations
+    if (!shape.init_code.empty()) {
+      auto initHandle = evaluator_.compile(shape.init_code);
+      if (initHandle) {
+        evaluator_.execute(initHandle);
+        evaluator_.freeCode(initHandle);
+      }
+    }
+
+    // Compile per-frame equations
+    if (!shape.per_frame_code.empty()) {
+      auto handle = evaluator_.compile(shape.per_frame_code);
+      if (handle) {
+        shape.per_frame_handle = handle;
+      }
+    }
+  }
+
+  // Register wave variables in evaluator
+  for (size_t i = 0; i < preset.waves.size(); ++i) {
+    if (!preset.waves[i].enabled) continue;
+
+    milkdrop::Wave& wave = preset.waves[i];
+    std::string prefix = "wave_" + std::to_string(i) + "_";
+
+    evaluator_.registerVariable(prefix + "x");
+    evaluator_.registerVariable(prefix + "y");
+    evaluator_.registerVariable(prefix + "r");
+    evaluator_.registerVariable(prefix + "g");
+    evaluator_.registerVariable(prefix + "b");
+    evaluator_.registerVariable(prefix + "a");
+
+    // Set initial values
+    *evaluator_.getVariable(prefix + "x") = 0.5f;
+    *evaluator_.getVariable(prefix + "y") = 0.5f;
+    *evaluator_.getVariable(prefix + "r") = wave.r;
+    *evaluator_.getVariable(prefix + "g") = wave.g;
+    *evaluator_.getVariable(prefix + "b") = wave.b;
+    *evaluator_.getVariable(prefix + "a") = wave.a;
+
+    // Compile and execute init equations
+    if (!wave.init_code.empty()) {
+      auto initHandle = evaluator_.compile(wave.init_code);
+      if (initHandle) {
+        evaluator_.execute(initHandle);
+        evaluator_.freeCode(initHandle);
+      }
+    }
+
+    // Compile per-point equations
+    if (!wave.per_point_code.empty()) {
+      auto handle = evaluator_.compile(wave.per_point_code);
+      if (handle) {
+        wave.per_point_handle = handle;
+      }
+    }
+  }
+
+  // Compile global per-frame equations
   if (!preset.state.per_frame_eqs_code.empty()) {
     auto handle = evaluator_.compile(preset.state.per_frame_eqs_code);
     if (handle) {
       preset.state.per_frame_eqs_handle = handle;
-    }
-  }
-
-  // Compile shape equations
-  for (size_t i = 0; i < preset.shapes.size(); ++i) {
-    if (!preset.shapes[i].enabled) continue;
-
-    // Compile per-frame equations
-    if (!preset.shapes[i].per_frame_code.empty()) {
-      auto handle = evaluator_.compile(preset.shapes[i].per_frame_code);
-      if (handle) {
-        preset.shapes[i].per_frame_handle = handle;
-      }
-    }
-  }
-
-  // Compile wave equations
-  for (size_t i = 0; i < preset.waves.size(); ++i) {
-    if (!preset.waves[i].enabled) continue;
-
-    // Compile per-point equations
-    if (!preset.waves[i].per_point_code.empty()) {
-      auto handle = evaluator_.compile(preset.waves[i].per_point_code);
-      if (handle) {
-        preset.waves[i].per_point_handle = handle;
-      }
     }
   }
 }
@@ -166,30 +247,80 @@ void VisualizationEngine::evaluatePerFrameEquations(
     if (val) state.wave_scale = *val;
   }
 
-  // Execute shape per-frame equations only for enabled shapes
+  // Execute shape per-frame equations and read back modified values
   for (size_t i = 0; i < currentPreset_->shapes.size(); ++i) {
     if (!currentPreset_->shapes[i].enabled) continue;
 
     milkdrop::Shape& shape = currentPreset_->shapes[i];
+    std::string prefix = "shape_" + std::to_string(i) + "_";
 
     // Execute per-frame
     if (shape.per_frame_handle) {
       evaluator_.execute(shape.per_frame_handle);
-
-      // Shape-specific variables would be read back here if tracked
     }
+
+    // Read back modified values from evaluator
+    if (auto* var = evaluator_.getVariable(prefix + "x"))
+      shape.x = *var;
+    if (auto* var = evaluator_.getVariable(prefix + "y"))
+      shape.y = *var;
+    if (auto* var = evaluator_.getVariable(prefix + "radius"))
+      shape.radius = *var;
+    if (auto* var = evaluator_.getVariable(prefix + "angle"))
+      shape.angle = *var;
+    if (auto* var = evaluator_.getVariable(prefix + "r"))
+      shape.r = *var;
+    if (auto* var = evaluator_.getVariable(prefix + "g"))
+      shape.g = *var;
+    if (auto* var = evaluator_.getVariable(prefix + "b"))
+      shape.b = *var;
+    if (auto* var = evaluator_.getVariable(prefix + "a"))
+      shape.a = *var;
+    if (auto* var = evaluator_.getVariable(prefix + "r2"))
+      shape.r2 = *var;
+    if (auto* var = evaluator_.getVariable(prefix + "g2"))
+      shape.g2 = *var;
+    if (auto* var = evaluator_.getVariable(prefix + "b2"))
+      shape.b2 = *var;
+    if (auto* var = evaluator_.getVariable(prefix + "a2"))
+      shape.a2 = *var;
+    if (auto* var = evaluator_.getVariable(prefix + "border_r"))
+      shape.border_r = *var;
+    if (auto* var = evaluator_.getVariable(prefix + "border_g"))
+      shape.border_g = *var;
+    if (auto* var = evaluator_.getVariable(prefix + "border_b"))
+      shape.border_b = *var;
+    if (auto* var = evaluator_.getVariable(prefix + "border_a"))
+      shape.border_a = *var;
+    if (auto* var = evaluator_.getVariable(prefix + "sides"))
+      shape.sides = static_cast<int>(*var);
+    if (auto* var = evaluator_.getVariable(prefix + "tex_angle"))
+      shape.tex_angle = *var;
+    if (auto* var = evaluator_.getVariable(prefix + "tex_zoom"))
+      shape.tex_zoom = *var;
   }
 
-  // Execute wave per-point equations only for enabled waves
+  // Execute wave per-frame equations and read back modified values
   for (size_t i = 0; i < currentPreset_->waves.size(); ++i) {
     if (!currentPreset_->waves[i].enabled) continue;
 
     milkdrop::Wave& wave = currentPreset_->waves[i];
+    std::string prefix = "wave_" + std::to_string(i) + "_";
 
-    // Execute per-point equations
+    // Execute per-frame equations
     if (wave.per_point_handle) {
       evaluator_.execute(wave.per_point_handle);
     }
+
+    // Read back modified values from evaluator
+    if (auto* var = evaluator_.getVariable(prefix + "r"))
+      wave.r = *var;
+    if (auto* var = evaluator_.getVariable(prefix + "g"))
+      wave.g = *var;
+    if (auto* var = evaluator_.getVariable(prefix + "b"))
+      wave.b = *var;
+    if (auto* var = evaluator_.getVariable(prefix + "a"))
+      wave.a = *var;
   }
 }
 
@@ -212,14 +343,13 @@ void VisualizationEngine::generateRenderCommands(
     testWave.waveColor = {0.0f, 1.0f, 0.0f, 1.0f};
     testWave.frequencyBins = frequencyBins;
     pendingCommands_.push_back(testWave);
-    std::cout << "Rendering test waveform (no preset loaded)\n";
     return;
   }
 
   const milkdrop::PresetState& state = currentPreset_->state;
 
   // Generate waveform rendering commands
-  bool hasWaves = false;
+  int waveCount = 0;
   for (size_t w = 0; w < currentPreset_->waves.size(); ++w) {
     const milkdrop::Wave& wave = currentPreset_->waves[w];
     if (!wave.enabled) continue;
@@ -229,11 +359,11 @@ void VisualizationEngine::generateRenderCommands(
     waveCmd.waveColor = {wave.r, wave.g, wave.b, wave.a};
     waveCmd.frequencyBins = frequencyBins;
     pendingCommands_.push_back(waveCmd);
-    hasWaves = true;
+    waveCount++;
   }
 
   // Generate shape rendering commands
-  bool hasShapes = false;
+  int shapeCount = 0;
   for (size_t s = 0; s < currentPreset_->shapes.size(); ++s) {
     const milkdrop::Shape& shape = currentPreset_->shapes[s];
     if (!shape.enabled) continue;
@@ -244,11 +374,12 @@ void VisualizationEngine::generateRenderCommands(
     shapeCmd.shapeRadius = shape.radius;
     shapeCmd.shapeColor = {shape.r, shape.g, shape.b, shape.a};
     pendingCommands_.push_back(shapeCmd);
-    hasShapes = true;
+    shapeCount++;
   }
 
+
   // Fallback: if no waves or shapes enabled, render a test waveform
-  if (!hasWaves && !hasShapes && !frequencyBins.empty()) {
+  if (waveCount == 0 && shapeCount == 0 && !frequencyBins.empty()) {
     RenderCommand fallbackWave;
     fallbackWave.type = RenderCommandType::DrawWaveform;
     fallbackWave.waveColor = {0.0f, 1.0f, 0.0f, 1.0f};
