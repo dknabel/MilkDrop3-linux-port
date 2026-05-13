@@ -69,8 +69,15 @@ public:
 
       // Load first preset or default
       if (!presetMgr_->getPresets().empty()) {
+        std::cout << "Found " << presetMgr_->getPresets().size() << " presets, loading first...\n";
         currentPreset_ = presetMgr_->loadPresetByIndex(0);
-        std::cout << "Loaded initial preset\n";
+        if (!currentPreset_.empty()) {
+          std::cout << "Loaded initial preset, size: " << currentPreset_.size() << " bytes\n";
+        } else {
+          std::cerr << "Failed to load preset content\n";
+        }
+      } else {
+        std::cout << "No presets available\n";
       }
 
       audioAnalyzer_ = std::make_unique<AudioAnalyzer>(512);
@@ -217,6 +224,13 @@ public:
                 auto freqBins = audioAnalyzer_->analyze(audioFrame.samples);
                 visualizer_->update(freqBins, deltaTime);
               }
+            } else {
+              // No audio frame available, create synthetic data for testing
+              std::vector<float> syntheticBins(64);
+              for (int i = 0; i < 64; ++i) {
+                syntheticBins[i] = 0.3f + 0.2f * std::sin(currentTime * 2.0f + i * 0.1f);
+              }
+              visualizer_->update(syntheticBins, deltaTime);
             }
           } catch (const std::exception& e) {
             std::cerr << "Exception during audio processing: " << e.what() << "\n";
@@ -226,6 +240,9 @@ public:
           // Render
           try {
             auto commands = visualizer_->getRenderCommands();
+            if (commands.empty()) {
+              std::cerr << "Warning: no render commands generated\n";
+            }
             display_->render(commands, graphics_.get());
           } catch (const std::exception& e) {
             std::cerr << "Exception during rendering: " << e.what() << "\n";

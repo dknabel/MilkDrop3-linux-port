@@ -20,6 +20,8 @@ VisualizationEngine::~VisualizationEngine() {
 
 bool VisualizationEngine::loadPreset(const std::string& presetContent,
                                       const std::string& filename) {
+  std::cout << "VisualizationEngine::loadPreset called with " << presetContent.size() << " bytes\n";
+
   // Parse preset from content
   auto parsed = parser_.parsePreset(presetContent, filename);
   if (!parsed) {
@@ -29,6 +31,8 @@ bool VisualizationEngine::loadPreset(const std::string& presetContent,
 
   // Store as current preset
   currentPreset_ = std::make_unique<milkdrop::Preset>(parsed.value());
+  std::cout << "Preset loaded: " << currentPreset_->waves.size() << " waves, "
+            << currentPreset_->shapes.size() << " shapes\n";
 
   // Register variables in evaluator
   evaluator_.registerVariable("time");
@@ -212,6 +216,7 @@ void VisualizationEngine::generateRenderCommands(
     testWave.waveColor = {0.0f, 1.0f, 0.0f, 1.0f};
     testWave.frequencyBins = frequencyBins;
     pendingCommands_.push_back(testWave);
+    std::cout << "Rendering test waveform (no preset loaded)\n";
     return;
   }
 
