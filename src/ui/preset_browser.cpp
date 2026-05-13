@@ -30,7 +30,8 @@ bool PresetBrowser::scanPresets(const std::string& defaultPath) {
 bool PresetBrowser::loadPresetsFromDirectory(const std::filesystem::path& dir) {
   try {
     for (const auto& entry : std::filesystem::directory_iterator(dir)) {
-      if (entry.path().extension() == ".milk") {
+      std::string ext = entry.path().extension().string();
+      if (ext == ".milk" || ext == ".milk2") {
         presets_.push_back(entry.path().filename().string());
       }
     }
