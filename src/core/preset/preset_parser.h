@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <optional>
+#include <map>
 
 namespace milkdrop {
 
@@ -25,17 +26,11 @@ private:
 
   std::string lastError_;
 
-  // Helper to extract and filter section content
-  std::string extractSection(const std::string& sectionName,
-                             const std::string& content);
-
-  // Parse section helpers
-  void parseSection(const std::string& section, const std::string& content,
-                    Preset& preset);
-  void parsePerFrameEquations(const std::string& content, PresetState& state);
-  void parseWarpShaderCode(const std::string& content, Preset& preset);
-  void parseShape(int shapeIndex, const std::string& content, Preset& preset);
-  void parseWave(int waveIndex, const std::string& content, Preset& preset);
+  // Parse section helpers for Milkdrop3 property-based format
+  void parseWave(int waveIndex, const std::map<std::string, std::string>& props,
+                 Preset& preset);
+  void parseShape(int shapeIndex, const std::map<std::string, std::string>& props,
+                  Preset& preset);
 };
 
 }  // namespace milkdrop
