@@ -14,13 +14,16 @@ PresetManager::PresetManager()
 std::vector<std::string> PresetManager::getPresetSearchPaths() const {
   std::vector<std::string> paths;
 
-  // XDG user data directory
-  const char* xdgData = std::getenv("XDG_DATA_HOME");
-  if (xdgData && fs::path(xdgData).is_absolute()) {
-    paths.push_back(std::string(xdgData) + "/milkdrop/presets");
-  } else {
-    const char* home = std::getenv("HOME");
-    if (home) {
+  const char* home = std::getenv("HOME");
+  if (home) {
+    // User's milkdrop3 config directory (highest priority)
+    paths.push_back(std::string(home) + "/.milkdrop3/presets");
+
+    // XDG user data directory
+    const char* xdgData = std::getenv("XDG_DATA_HOME");
+    if (xdgData && fs::path(xdgData).is_absolute()) {
+      paths.push_back(std::string(xdgData) + "/milkdrop/presets");
+    } else {
       paths.push_back(std::string(home) + "/.local/share/milkdrop/presets");
     }
   }
@@ -43,7 +46,8 @@ void PresetManager::scanDirectory(const std::string& dir) {
     }
 
     for (const auto& entry : fs::directory_iterator(dir)) {
-      if (entry.path().extension() == ".milk") {
+      std::string ext = entry.path().extension().string();
+      if (ext == ".milk" || ext == ".milk2") {
         PresetInfo info;
         info.filename = entry.path().filename().string();
         info.name = entry.path().stem().string();
