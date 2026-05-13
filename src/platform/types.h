@@ -51,6 +51,13 @@ struct RenderCommand {
   std::array<float, 2> shapePosition = {0.5f, 0.5f};
   float shapeRadius = 0.1f;
   std::array<float, 4> shapeColor = {1.0f, 0.0f, 0.0f, 1.0f};
+  int shapeSides = 4;
+  float shapeAngle = 0.0f;
+  std::array<float, 4> shapeColor2 = {1.0f, 1.0f, 1.0f, 1.0f};
+  std::array<float, 4> shapeBorderColor = {0.0f, 0.0f, 0.0f, 1.0f};
+  float shapeTexAngle = 0.0f;
+  float shapeTexZoom = 1.0f;
+  int shapeAdditive = 0;
 
   // Legacy render command data (for backward compatibility)
   uint32_t shaderHandle = 0;

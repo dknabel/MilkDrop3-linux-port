@@ -30,6 +30,7 @@ bool VisualizationEngine::loadPreset(const std::string& presetContent,
   // Store as current preset
   currentPreset_ = std::make_unique<milkdrop::Preset>(parsed.value());
 
+
   // Register variables in evaluator
   evaluator_.registerVariable("time");
   evaluator_.registerVariable("fps");
@@ -373,6 +374,13 @@ void VisualizationEngine::generateRenderCommands(
     shapeCmd.shapePosition = {shape.x, shape.y};
     shapeCmd.shapeRadius = shape.radius;
     shapeCmd.shapeColor = {shape.r, shape.g, shape.b, shape.a};
+    shapeCmd.shapeSides = shape.sides;
+    shapeCmd.shapeAngle = shape.angle;
+    shapeCmd.shapeColor2 = {shape.r2, shape.g2, shape.b2, shape.a2};
+    shapeCmd.shapeBorderColor = {shape.border_r, shape.border_g, shape.border_b, shape.border_a};
+    shapeCmd.shapeTexAngle = shape.tex_angle;
+    shapeCmd.shapeTexZoom = shape.tex_zoom;
+    shapeCmd.shapeAdditive = shape.additive;
     pendingCommands_.push_back(shapeCmd);
     shapeCount++;
   }

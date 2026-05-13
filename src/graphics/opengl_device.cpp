@@ -5,6 +5,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+#include <cmath>
+#include <vector>
 
 // OpenGLTexture implementation
 OpenGLTexture::OpenGLTexture(int width, int height, const void* data)
@@ -237,6 +239,13 @@ void OpenGLDevice::executeDrawShapeCommand(const RenderCommand& cmd) {
 
   shader->use();
 
+  // Set blending mode
+  if (cmd.shapeAdditive) {
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+  } else {
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  }
+
   // Set uniforms
   glm::mat4 projection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
   glm::mat4 view = glm::mat4(1.0f);
@@ -244,6 +253,7 @@ void OpenGLDevice::executeDrawShapeCommand(const RenderCommand& cmd) {
   // Build model matrix from position and radius
   glm::mat4 model = glm::mat4(1.0f);
   model = glm::translate(model, glm::vec3(cmd.shapePosition[0], cmd.shapePosition[1], 0.0f));
+  model = glm::rotate(model, cmd.shapeAngle, glm::vec3(0.0f, 0.0f, 1.0f));
   model = glm::scale(model, glm::vec3(cmd.shapeRadius, cmd.shapeRadius, 1.0f));
 
   shader->setUniform("projection", projection);
@@ -252,33 +262,37 @@ void OpenGLDevice::executeDrawShapeCommand(const RenderCommand& cmd) {
   shader->setUniform("color", glm::vec4(cmd.shapeColor[0], cmd.shapeColor[1],
                                         cmd.shapeColor[2], cmd.shapeColor[3]));
 
-  // Create a simple quad
-  static const glm::vec2 quadVertices[] = {
-    {-0.5f, -0.5f},
-    {0.5f, -0.5f},
-    {0.5f, 0.5f},
-    {-0.5f, 0.5f}
-  };
+  // Generate polygon vertices based on number of sides
+  int sides = cmd.shapeSides;
+  if (sides < 3) sides = 3;
+  if (sides > 256) sides = 256;
+
+  std::vector<glm::vec2> vertices;
+  const float PI = 3.14159265f;
+  for (int i = 0; i < sides; ++i) {
+    float angle = (2.0f * PI * i) / sides;
+    vertices.push_back(glm::vec2(std::cos(angle) * 0.5f, std::sin(angle) * 0.5f));
+  }
 
   if (shapeVAO_ == 0) {
     glGenVertexArrays(1, &shapeVAO_);
     glGenBuffers(1, &shapeVBO_);
-
-    glBindVertexArray(shapeVAO_);
-    glBindBuffer(GL_ARRAY_BUFFER, shapeVBO_);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*)0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
   }
 
   glBindVertexArray(shapeVAO_);
-  glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+  glBindBuffer(GL_ARRAY_BUFFER, shapeVBO_);
+  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec2), vertices.data(), GL_DYNAMIC_DRAW);
+
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*)0);
+
+  glDrawArrays(GL_TRIANGLE_FAN, 0, static_cast<GLsizei>(vertices.size()));
+
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
+
+  // Restore default blending
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void OpenGLDevice::present() {
