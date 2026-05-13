@@ -195,13 +195,9 @@ void VisualizationEngine::evaluatePerFrameEquations(
 
 void VisualizationEngine::generateRenderCommands(
     const std::vector<float>& frequencyBins, float deltaTime) {
-  if (!currentPreset_) return;
-
   pendingCommands_.clear();
   // Pre-allocate: typical = 1 clear + 4 waves + 16 shapes + custom
   pendingCommands_.reserve(32);
-
-  const milkdrop::PresetState& state = currentPreset_->state;
 
   // Generate clear command
   RenderCommand clearCmd;
@@ -209,7 +205,20 @@ void VisualizationEngine::generateRenderCommands(
   clearCmd.clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
   pendingCommands_.push_back(clearCmd);
 
+  if (!currentPreset_) {
+    // If no preset, render a simple test waveform
+    RenderCommand testWave;
+    testWave.type = RenderCommandType::DrawWaveform;
+    testWave.waveColor = {0.0f, 1.0f, 0.0f, 1.0f};
+    testWave.frequencyBins = frequencyBins;
+    pendingCommands_.push_back(testWave);
+    return;
+  }
+
+  const milkdrop::PresetState& state = currentPreset_->state;
+
   // Generate waveform rendering commands
+  bool hasWaves = false;
   for (size_t w = 0; w < currentPreset_->waves.size(); ++w) {
     const milkdrop::Wave& wave = currentPreset_->waves[w];
     if (!wave.enabled) continue;
@@ -219,9 +228,11 @@ void VisualizationEngine::generateRenderCommands(
     waveCmd.waveColor = {wave.r, wave.g, wave.b, wave.a};
     waveCmd.frequencyBins = frequencyBins;
     pendingCommands_.push_back(waveCmd);
+    hasWaves = true;
   }
 
   // Generate shape rendering commands
+  bool hasShapes = false;
   for (size_t s = 0; s < currentPreset_->shapes.size(); ++s) {
     const milkdrop::Shape& shape = currentPreset_->shapes[s];
     if (!shape.enabled) continue;
@@ -232,6 +243,16 @@ void VisualizationEngine::generateRenderCommands(
     shapeCmd.shapeRadius = shape.radius;
     shapeCmd.shapeColor = {shape.r, shape.g, shape.b, shape.a};
     pendingCommands_.push_back(shapeCmd);
+    hasShapes = true;
+  }
+
+  // Fallback: if no waves or shapes enabled, render a test waveform
+  if (!hasWaves && !hasShapes && !frequencyBins.empty()) {
+    RenderCommand fallbackWave;
+    fallbackWave.type = RenderCommandType::DrawWaveform;
+    fallbackWave.waveColor = {0.0f, 1.0f, 0.0f, 1.0f};
+    fallbackWave.frequencyBins = frequencyBins;
+    pendingCommands_.push_back(fallbackWave);
   }
 }
 

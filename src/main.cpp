@@ -226,7 +226,7 @@ public:
           // Render
           try {
             auto commands = visualizer_->getRenderCommands();
-            display_->render(commands);
+            display_->render(commands, graphics_.get());
           } catch (const std::exception& e) {
             std::cerr << "Exception during rendering: " << e.what() << "\n";
             // Continue running despite render error

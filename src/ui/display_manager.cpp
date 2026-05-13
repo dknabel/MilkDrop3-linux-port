@@ -1,4 +1,5 @@
 #include "display_manager.h"
+#include "../platform/graphics.h"
 #include <iostream>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -71,15 +72,15 @@ bool DisplayManager::update() {
   return true;
 }
 
-void DisplayManager::render(const std::vector<RenderCommand>& commands) {
+void DisplayManager::render(const std::vector<RenderCommand>& commands, GraphicsDevice* graphics) {
   if (!window_) return;
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  // Execute render commands (will be implemented with graphics device)
-  // For now, this is a placeholder
-  for (const auto& cmd : commands) {
-    // Command execution deferred to graphics device
+  if (graphics) {
+    for (const auto& cmd : commands) {
+      graphics->executeRenderCommand(cmd);
+    }
   }
 
   glfwSwapBuffers(window_);

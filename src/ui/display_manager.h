@@ -5,6 +5,8 @@
 #include <memory>
 #include "../platform/types.h"
 
+class GraphicsDevice;
+
 class DisplayManager {
 public:
   DisplayManager();
@@ -17,7 +19,7 @@ public:
   bool update();
 
   // Render a frame from render commands
-  void render(const std::vector<RenderCommand>& commands);
+  void render(const std::vector<RenderCommand>& commands, GraphicsDevice* graphics = nullptr);
 
   // Cleanup and shutdown
   void shutdown();
